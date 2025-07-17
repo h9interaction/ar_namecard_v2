@@ -1,0 +1,93 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 2rem;
+  background-color: #ffffff;
+}
+
+.app-header {
+  text-align: center;
+}
+
+.app-header h1 {
+  font-family: Pretendard;
+  font-weight: 700;
+  font-style: Bold;
+  font-size: 20.68px;
+  line-height: 100%;
+  letter-spacing: 0.1%;
+  text-align: center;
+  margin: 0;
+  color: #666;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.preview-container {
+  width: 502px;
+  height: 467px;
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.google-login-btn {
+  width: 251px;
+  height: 66px;
+  background-color: #ffffff;
+  color: #666;
+  border: 1px solid #dadce0;
+  padding: 20px 30px;
+  font-size: 16px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+  gap: 20px;
+}
+
+.google-login-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #dadce0;
+}
+
+.google-login-btn:active {
+  background-color: #f1f3f4;
+  border-color: #dadce0;
+}
+
+.login-notice {
+  width: 298.35px;
+  height: 13px;
+  font-family: Pretendard;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 10px;
+  line-height: 100%;
+  letter-spacing: 0.1%;
+  text-align: center;
+  color: #00000080;
+  margin: 0;
+}

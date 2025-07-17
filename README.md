@@ -1,4 +1,4 @@
-# AR_Namecard
+# ar_namecard_v2
 
 
 
@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://git.hnine.com/hnine/ar_namecard.git
+git remote add origin https://git.hnine.com/INTERACTION/ar_namecard_v2.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://git.hnine.com/hnine/ar_namecard/-/settings/integrations)
+- [ ] [Set up project integrations](https://git.hnine.com/INTERACTION/ar_namecard_v2/-/settings/integrations)
 
 ## Collaborate with your team
 

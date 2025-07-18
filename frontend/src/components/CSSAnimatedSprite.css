@@ -1,0 +1,43 @@
+.css-animated-sprite {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  /* 스프라이트시트가 16열이므로 1600%로 설정하여 각 프레임을 1/16 크기로 */
+  background-size: 1600% auto;
+  background-position: 0 0;
+  pointer-events: none;
+  z-index: 10;
+  transform-origin: center;
+  /* 컨테이너 크기만큼만 보이도록 overflow 숨김 */
+  overflow: hidden;
+  
+  /* CSS sprite animation - 16 frames, 2 seconds total */
+  animation: sprite-animation 2s steps(16) infinite;
+}
+
+@keyframes sprite-animation {
+  0% { background-position: 0% 0; }
+  100% { background-position: -1500% 0; } /* 16프레임이므로 -1500% (15 * 100%) */
+}
+
+.sprite-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 더 부드러운 버전 - 8프레임만 사용 */
+.css-animated-sprite.smooth {
+  background-size: 800% auto; /* 8 frames */
+  animation: sprite-animation-smooth 1.6s steps(8) infinite;
+}
+
+@keyframes sprite-animation-smooth {
+  0% { background-position: 0% 0; }
+  100% { background-position: -700% 0; } /* 8프레임이므로 -700% (7 * 100%) */
+}

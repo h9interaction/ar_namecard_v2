@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사용자 관리 테스트 - AR 명함</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .auth-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input, select, textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="email"], input[type="tel"], textarea {
+            width: 200px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .modal {
+            display: none !important;
+            position: fixed !important;
+            z-index: 9999 !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .modal.show {
+            display: block !important;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .status.loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .page-info {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .admin-badge {
+            background-color: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .active-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>👥 사용자 관리 테스트 페이지</h1>
+
+        <!-- 인증 섹션 -->
+        <div class="section auth-section">
+            <h3>🔐 관리자 인증</h3>
+            <p>사용자 관리 기능을 사용하려면 관리자 권한이 필요합니다.</p>
+            <div class="controls">
+                <input type="text" id="adminToken" placeholder="관리자 JWT 토큰 입력" style="width: 400px;">
+                <button onclick="setAuthToken()">토큰 설정</button>
+                <button onclick="getAdminToken()" class="btn-success">관리자 토큰 생성</button>
+                <button onclick="clearAuthToken()" class="btn-secondary">토큰 초기화</button>
+            </div>
+            <div id="authStatus"></div>
+        </div>
+
+        <!-- 사용자 추가 섹션 -->
+        <div class="section">
+            <h3>➕ 새 사용자 추가</h3>
+            <button onclick="openCreateUserModal()" class="btn-success">새 사용자 추가</button>
+        </div>
+
+        <!-- 사용자 목록 섹션 -->
+        <div class="section">
+            <h3>📋 사용자 목록</h3>
+            
+            <!-- 검색 및 필터 컨트롤 -->
+            <div class="controls">
+                <input type="text" id="searchInput" placeholder="이름, 이메일, AR ID 검색">
+                <select id="roleFilter">
+                    <option value="">전체 역할</option>
+                    <option value="User">User</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Manager">Manager</option>
+                </select>
+                <select id="adminFilter">
+                    <option value="">전체</option>
+                    <option value="true">관리자만</option>
+                    <option value="false">일반 사용자만</option>
+                </select>
+                <select id="activeFilter">
+                    <option value="">전체</option>
+                    <option value="true">활성화된 명함만</option>
+                    <option value="false">비활성화된 명함만</option>
+                </select>
+                <button onclick="loadUsers()" class="btn-success">검색</button>
+                <button onclick="clearFilters()" class="btn-secondary">필터 초기화</button>
+            </div>
+
+            <div id="userListStatus"></div>
+            
+            <!-- 사용자 테이블 -->
+            <div id="userTableContainer">
+                <table id="userTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>AR ID</th>
+                            <th>이름</th>
+                            <th>이메일</th>
+                            <th>역할</th>
+                            <th>부서</th>
+                            <th>전화번호</th>
+                            <th>상태</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 페이지네이션 -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button onclick="changePage(-1)" id="prevBtn">이전</button>
+                <span class="page-info" id="pageInfo"></span>
+                <button onclick="changePage(1)" id="nextBtn">다음</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 사용자 편집 모달 -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h3>✏️ 사용자 정보 수정</h3>
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId">
+                
+                <div class="form-group">
+                    <label>이메일 (수정 불가)</label>
+                    <input type="email" id="editEmail" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label>AR ID (수정 불가)</label>
+                    <input type="text" id="editArId" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editNameKr">한글명 *</label>
+                    <input type="text" id="editNameKr" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editNameEn">영문명</label>
+                    <input type="text" id="editNameEn">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editRole">역할</label>
+                    <input type="text" id="editRole">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPart">부서</label>
+                    <input type="text" id="editPart">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPhone">전화번호 *</label>
+                    <input type="tel" id="editPhone" required>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="editIsAdmin">
+                        <label for="editIsAdmin">관리자 권한</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="editIsNamecardActive">
+                        <label for="editIsNamecardActive">명함 활성화</label>
+                    </div>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" onclick="closeEditModal()" class="btn-secondary">취소</button>
+                    <button type="submit" class="btn-success">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 사용자 생성 모달 -->
+    <div id="createUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateModal()">&times;</span>
+            <h3>➕ 새 사용자 추가</h3>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label for="createEmail">이메일 *</label>
+                    <input type="email" id="createEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="createArId">AR ID * (3자리)</label>
+                    <input type="text" id="createArId" maxlength="3" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="createNameKr">한글명 *</label>
+                    <input type="text" id="createNameKr" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="createNameEn">영문명</label>
+                    <input type="text" id="createNameEn">
+                </div>
+                
+                <div class="form-group">
+                    <label for="createRole">역할</label>
+                    <input type="text" id="createRole" value="User">
+                </div>
+                
+                <div class="form-group">
+                    <label for="createPart">부서</label>
+                    <input type="text" id="createPart">
+                </div>
+                
+                <div class="form-group">
+                    <label for="createPhone">전화번호 *</label>
+                    <input type="tel" id="createPhone" required>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="createIsAdmin">
+                        <label for="createIsAdmin">관리자 권한</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="createIsNamecardActive">
+                        <label for="createIsNamecardActive">명함 활성화</label>
+                    </div>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" onclick="closeCreateModal()" class="btn-secondary">취소</button>
+                    <button type="submit" class="btn-success">추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let currentPage = 1;
+        let totalPages = 1;
+        let users = [];
+
+        // 인증 토큰 설정
+        function setAuthToken() {
+            const token = document.getElementById('adminToken').value.trim();
+            if (!token) {
+                showStatus('authStatus', 'error', '토큰을 입력해주세요.');
+                return;
+            }
+            
+            currentToken = token;
+            localStorage.setItem('adminToken', token);
+            showStatus('authStatus', 'success', '✅ 관리자 토큰이 설정되었습니다.');
+            
+            // 토큰 설정 후 사용자 목록 자동 로드
+            loadUsers();
+        }
+
+        // 관리자 토큰 생성
+        async function getAdminToken() {
+            try {
+                showStatus('authStatus', 'loading', '관리자 토큰을 생성하는 중...');
+
+                const response = await fetch('/api/auth/test-token/001', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const token = data.token;
+                    document.getElementById('adminToken').value = token;
+                    currentToken = token;
+                    localStorage.setItem('adminToken', token);
+                    
+                    showStatus('authStatus', 'success', `✅ 관리자 토큰이 생성되었습니다. (사용자: ${data.user.nameKr})`);
+                    
+                    // 토큰 생성 후 사용자 목록 자동 로드
+                    loadUsers();
+                } else {
+                    showStatus('authStatus', 'error', `❌ 토큰 생성 실패: ${data.message || '관리자 사용자를 찾을 수 없습니다.'}`);
+                }
+
+            } catch (error) {
+                console.error('토큰 생성 오류:', error);
+                showStatus('authStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 토큰 초기화
+        function clearAuthToken() {
+            currentToken = '';
+            localStorage.removeItem('adminToken');
+            document.getElementById('adminToken').value = '';
+            showStatus('authStatus', 'success', '🔄 토큰이 초기화되었습니다.');
+            
+            // 사용자 테이블 숨기기
+            document.getElementById('userTable').style.display = 'none';
+            document.getElementById('pagination').style.display = 'none';
+        }
+
+        // 페이지 로드 시 저장된 토큰 복원
+        window.addEventListener('load', function() {
+            const savedToken = localStorage.getItem('adminToken');
+            if (savedToken) {
+                document.getElementById('adminToken').value = savedToken;
+                currentToken = savedToken;
+                showStatus('authStatus', 'success', '✅ 저장된 토큰을 불러왔습니다.');
+                loadUsers();
+            }
+        });
+
+        // 상태 메시지 표시
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 사용자 목록 로드
+        async function loadUsers(page = 1) {
+            if (!currentToken) {
+                showStatus('userListStatus', 'error', '❌ 먼저 관리자 토큰을 설정해주세요.');
+                return;
+            }
+
+            const searchInput = document.getElementById('searchInput').value.trim();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const adminFilter = document.getElementById('adminFilter').value;
+            const activeFilter = document.getElementById('activeFilter').value;
+
+            try {
+                showStatus('userListStatus', 'loading', '사용자 목록을 불러오는 중...');
+
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    limit: '10'
+                });
+
+                if (searchInput) params.append('search', searchInput);
+                if (roleFilter) params.append('role', roleFilter);
+                if (adminFilter) params.append('isAdmin', adminFilter);
+                if (activeFilter) params.append('isNamecardActive', activeFilter);
+
+                const response = await fetch(`/api/admin/users?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    users = data.users;
+                    currentPage = data.currentPage;
+                    totalPages = data.totalPages;
+                    
+                    renderUserTable();
+                    renderPagination();
+                    
+                    showStatus('userListStatus', 'success', `✅ ${data.total}명의 사용자를 찾았습니다.`);
+                } else {
+                    showStatus('userListStatus', 'error', `❌ ${data.message || '사용자 목록 로드 실패'}`);
+                }
+
+            } catch (error) {
+                console.error('사용자 목록 로드 오류:', error);
+                showStatus('userListStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 사용자 테이블 렌더링
+        function renderUserTable() {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                // ID 필드 확인 - _id 또는 id 사용
+                const userId = user._id || user.id;
+                console.log('User object:', user);
+                console.log('User ID:', userId);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.arId}</td>
+                    <td>${user.nameKr}${user.nameEn ? ' (' + user.nameEn + ')' : ''}</td>
+                    <td>${user.email}</td>
+                    <td>${user.role}</td>
+                    <td>${user.part}</td>
+                    <td>${user.phone}</td>
+                    <td>
+                        ${user.isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
+                        ${user.isNamecardActive ? '<span class="active-badge">활성</span>' : ''}
+                    </td>
+                    <td>
+                        <button onclick="openEditModal('${userId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">수정</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('userTable').style.display = 'table';
+        }
+
+        // 페이지네이션 렌더링
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            pageInfo.textContent = `${currentPage} / ${totalPages} 페이지`;
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+
+            pagination.style.display = 'flex';
+        }
+
+        // 페이지 변경
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadUsers(newPage);
+            }
+        }
+
+        // 필터 초기화
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('roleFilter').value = '';
+            document.getElementById('adminFilter').value = '';
+            document.getElementById('activeFilter').value = '';
+            loadUsers(1);
+        }
+
+        // 사용자 편집 모달 열기
+        function openEditModal(userId) {
+            console.log('openEditModal called with userId:', userId);
+            console.log('Available users:', users);
+            
+            // _id 또는 id 필드로 사용자 찾기
+            const user = users.find(u => u._id === userId || u.id === userId);
+            console.log('Found user:', user);
+            
+            if (!user) {
+                console.error('User not found with ID:', userId);
+                console.error('Available user IDs:', users.map(u => u._id || u.id));
+                alert('사용자를 찾을 수 없습니다.');
+                return;
+            }
+
+            // 모달 요소 확인
+            const modal = document.getElementById('editUserModal');
+            if (!modal) {
+                console.error('Edit modal element not found');
+                alert('편집 모달을 찾을 수 없습니다.');
+                return;
+            }
+
+            try {
+                document.getElementById('editUserId').value = user._id || user.id;
+                document.getElementById('editEmail').value = user.email;
+                document.getElementById('editArId').value = user.arId;
+                document.getElementById('editNameKr').value = user.nameKr;
+                document.getElementById('editNameEn').value = user.nameEn || '';
+                document.getElementById('editRole').value = user.role;
+                document.getElementById('editPart').value = user.part;
+                document.getElementById('editPhone').value = user.phone;
+                document.getElementById('editIsAdmin').checked = user.isAdmin;
+                document.getElementById('editIsNamecardActive').checked = user.isNamecardActive;
+
+                console.log('Modal display before:', modal.style.display);
+                
+                // CSS 클래스와 인라인 스타일 모두 적용
+                modal.classList.add('show');
+                modal.style.display = 'block';
+                modal.style.visibility = 'visible';
+                modal.style.opacity = '1';
+                modal.style.zIndex = '9999';
+                
+                console.log('Modal display after:', modal.style.display);
+                console.log('Modal classList:', modal.classList.toString());
+                
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+                alert('모달을 여는 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 사용자 편집 모달 닫기
+        function closeEditModal() {
+            const modal = document.getElementById('editUserModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+
+        // 사용자 생성 모달 열기
+        function openCreateUserModal() {
+            document.getElementById('createUserForm').reset();
+            document.getElementById('createRole').value = 'User';
+            
+            const modal = document.getElementById('createUserModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '9999';
+        }
+
+        // 사용자 생성 모달 닫기
+        function closeCreateModal() {
+            const modal = document.getElementById('createUserModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+
+        // 사용자 정보 수정
+        document.getElementById('editUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentToken) {
+                alert('관리자 토큰이 설정되지 않았습니다.');
+                return;
+            }
+
+            const userId = document.getElementById('editUserId').value;
+            const updateData = {
+                nameKr: document.getElementById('editNameKr').value,
+                nameEn: document.getElementById('editNameEn').value,
+                role: document.getElementById('editRole').value,
+                part: document.getElementById('editPart').value,
+                phone: document.getElementById('editPhone').value,
+                isAdmin: document.getElementById('editIsAdmin').checked,
+                isNamecardActive: document.getElementById('editIsNamecardActive').checked
+            };
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 사용자 정보가 성공적으로 수정되었습니다.');
+                    closeEditModal();
+                    loadUsers(currentPage);
+                } else {
+                    alert(`❌ 수정 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('사용자 수정 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        });
+
+        // 새 사용자 생성
+        document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const createData = {
+                email: document.getElementById('createEmail').value,
+                arId: document.getElementById('createArId').value,
+                nameKr: document.getElementById('createNameKr').value,
+                nameEn: document.getElementById('createNameEn').value,
+                role: document.getElementById('createRole').value,
+                part: document.getElementById('createPart').value,
+                phone: document.getElementById('createPhone').value,
+                isAdmin: document.getElementById('createIsAdmin').checked,
+                isNamecardActive: document.getElementById('createIsNamecardActive').checked
+            };
+
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(createData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 새 사용자가 성공적으로 추가되었습니다.');
+                    closeCreateModal();
+                    loadUsers(currentPage);
+                } else {
+                    alert(`❌ 사용자 추가 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('사용자 생성 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        });
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const editModal = document.getElementById('editUserModal');
+            const createModal = document.getElementById('createUserModal');
+            
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+            if (event.target === createModal) {
+                closeCreateModal();
+            }
+        }
+    </script>
+</body>
+
+</html>

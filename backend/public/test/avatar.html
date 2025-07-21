@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아바타 관리 테스트 - AR 명함</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .auth-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input, select, textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="email"], input[type="tel"], input[type="color"], textarea {
+            width: 200px;
+        }
+
+        input[type="file"] {
+            width: 300px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .status.loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .category-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .category-title::before {
+            content: '▶';
+            font-size: 12px;
+            margin-right: 10px;
+            transition: transform 0.2s;
+        }
+
+        .category-card:not(.collapsed) .category-title::before {
+            transform: rotate(90deg);
+        }
+
+        .category-card.collapsed .category-options {
+            display: none;
+        }
+
+        .modal {
+            display: none !important;
+            position: fixed !important;
+            z-index: 9999 !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .modal.show {
+            display: block !important;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .option-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .option-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .option-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .option-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .thumbnail-source {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .category-options {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .multi-upload-container {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            background-color: #fafafa;
+        }
+
+        .multi-upload-container.dragover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+
+        .file-items {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .file-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: white;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .file-preview {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .remove-file {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .remove-file:hover {
+            background-color: #c82333;
+        }
+
+        .batch-controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .batch-input {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s ease;
+        }
+
+        .upload-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎨 아바타 관리 테스트 페이지</h1>
+
+        <!-- 인증 섹션 -->
+        <div class="section auth-section">
+            <h3>🔐 관리자 인증</h3>
+            <p>아바타 관리 기능을 사용하려면 관리자 권한이 필요합니다.</p>
+            <div class="controls">
+                <input type="text" id="adminToken" placeholder="관리자 JWT 토큰 입력" style="width: 400px;">
+                <button onclick="setAuthToken()">토큰 설정</button>
+                <button onclick="getAdminToken()" class="btn-success">관리자 토큰 생성</button>
+                <button onclick="clearAuthToken()" class="btn-secondary">토큰 초기화</button>
+            </div>
+            <div id="authStatus"></div>
+        </div>
+
+        <!-- 카테고리 관리 섹션 -->
+        <div class="section">
+            <h3>📁 아바타 카테고리 관리</h3>
+            <div class="controls">
+                <button onclick="openCreateCategoryModal()" class="btn-success">새 카테고리 추가</button>
+                <button onclick="loadCategories()" class="btn-secondary">새로고침</button>
+            </div>
+            <div id="categoryStatus"></div>
+            <div id="categoriesContainer"></div>
+        </div>
+    </div>
+
+    <!-- 카테고리 생성/수정 모달 -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCategoryModal()">&times;</span>
+            <h3 id="categoryModalTitle">📁 새 카테고리 추가</h3>
+            <form id="categoryForm">
+                <input type="hidden" id="categoryId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="categoryName">카테고리 이름 *</label>
+                        <input type="text" id="categoryName" required placeholder="예: 얼굴형, 눈, 코, 입">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="categoryType">카테고리 타입 *</label>
+                        <input type="text" id="categoryType" required placeholder="예: face, eyes, nose, mouth">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoryOrder">순서</label>
+                    <input type="number" id="categoryOrder" min="0" value="0">
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" onclick="closeCategoryModal()" class="btn-secondary">취소</button>
+                    <button type="submit" class="btn-success">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 아바타 옵션 생성/수정 모달 -->
+    <div id="optionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeOptionModal()">&times;</span>
+            <h3 id="optionModalTitle">🎭 새 아바타 옵션 추가</h3>
+            <form id="optionForm" enctype="multipart/form-data">
+                <input type="hidden" id="optionCategoryId">
+                <input type="hidden" id="optionId">
+                
+                <!-- 단일 옵션 추가 모드 -->
+                <div id="singleOptionMode">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="optionName">옵션 이름 *</label>
+                            <input type="text" id="optionName" required placeholder="예: 둥근 얼굴, 날카로운 눈">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="optionColor">색상</label>
+                            <input type="color" id="optionColor" value="#000000">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="optionOrder">순서</label>
+                        <input type="number" id="optionOrder" min="0" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="optionImage">아바타 이미지 * (512x512px 권장)</label>
+                        <input type="file" id="optionImage" accept="image/*">
+                        <div id="imagePreview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="optionThumbnail">썸네일 이미지 (300x300px 권장)</label>
+                        <input type="file" id="optionThumbnail" accept="image/*">
+                        <small>썸네일을 제공하지 않으면 원본 이미지에서 자동 생성됩니다.</small>
+                        <div id="thumbnailPreview"></div>
+                    </div>
+                </div>
+
+                <!-- 다중 옵션 추가 모드 -->
+                <div id="multiOptionMode" style="display: none;">
+                    <div class="form-group">
+                        <label>이미지 파일 선택 (여러 개 선택 가능)</label>
+                        <div class="multi-upload-container" id="multiUploadContainer">
+                            <p>여기에 파일을 드래그하거나 클릭하여 선택하세요</p>
+                            <input type="file" id="multiOptionImages" accept="image/*" multiple style="display: none;">
+                            <button type="button" onclick="document.getElementById('multiOptionImages').click()" class="btn-success">파일 선택</button>
+                        </div>
+                    </div>
+
+                    <!-- 일괄 설정 -->
+                    <div class="form-group">
+                        <label>일괄 설정</label>
+                        <div class="batch-controls">
+                            <input type="color" id="batchColor" value="#000000" class="batch-input" placeholder="공통 색상">
+                            <input type="number" id="batchOrderStart" min="0" value="0" class="batch-input" placeholder="시작 순서">
+                            <button type="button" onclick="applyBatchSettings()" class="btn-secondary">일괄 적용</button>
+                        </div>
+                    </div>
+
+                    <!-- 파일 목록 -->
+                    <div id="fileItemsContainer" class="file-items"></div>
+
+                    <!-- 업로드 진행률 -->
+                    <div id="uploadProgress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="upload-status" id="uploadStatus"></div>
+                    </div>
+                </div>
+                
+                <!-- 모드 전환 버튼 -->
+                <div style="text-align: center; margin: 20px 0;">
+                    <button type="button" id="toggleModeBtn" onclick="toggleUploadMode()" class="btn-secondary">다중 업로드 모드</button>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" onclick="closeOptionModal()" class="btn-secondary">취소</button>
+                    <button type="submit" class="btn-success" id="submitOptionBtn">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let categories = [];
+        let isMultiMode = false;
+        let selectedFiles = [];
+        let uploadProgress = 0;
+        let expandedCategories = new Set(); // 열린 카테고리 상태 추적
+
+        // 인증 토큰 설정
+        function setAuthToken() {
+            const token = document.getElementById('adminToken').value.trim();
+            if (!token) {
+                showStatus('authStatus', 'error', '토큰을 입력해주세요.');
+                return;
+            }
+            
+            currentToken = token;
+            localStorage.setItem('adminToken', token);
+            showStatus('authStatus', 'success', '✅ 관리자 토큰이 설정되었습니다.');
+            
+            // 토큰 설정 후 카테고리 목록 자동 로드
+            loadCategories();
+        }
+
+        // 관리자 토큰 생성
+        async function getAdminToken() {
+            try {
+                showStatus('authStatus', 'loading', '관리자 토큰을 생성하는 중...');
+
+                const response = await fetch('/api/auth/test-token/001', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const token = data.token;
+                    document.getElementById('adminToken').value = token;
+                    currentToken = token;
+                    localStorage.setItem('adminToken', token);
+                    
+                    showStatus('authStatus', 'success', `✅ 관리자 토큰이 생성되었습니다. (사용자: ${data.user.nameKr})`);
+                    
+                    // 토큰 생성 후 카테고리 목록 자동 로드
+                    loadCategories();
+                } else {
+                    showStatus('authStatus', 'error', `❌ 토큰 생성 실패: ${data.message || '관리자 사용자를 찾을 수 없습니다.'}`);
+                }
+
+            } catch (error) {
+                console.error('토큰 생성 오류:', error);
+                showStatus('authStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 토큰 초기화
+        function clearAuthToken() {
+            currentToken = '';
+            localStorage.removeItem('adminToken');
+            document.getElementById('adminToken').value = '';
+            showStatus('authStatus', 'success', '🔄 토큰이 초기화되었습니다.');
+            
+            // 카테고리 목록 숨기기
+            document.getElementById('categoriesContainer').innerHTML = '';
+        }
+
+        // 페이지 로드 시 저장된 토큰 복원
+        window.addEventListener('load', function() {
+            const savedToken = localStorage.getItem('adminToken');
+            if (savedToken) {
+                document.getElementById('adminToken').value = savedToken;
+                currentToken = savedToken;
+                showStatus('authStatus', 'success', '✅ 저장된 토큰을 불러왔습니다.');
+                loadCategories();
+            }
+
+            // 드래그 앤 드롭 이벤트 설정
+            setupDragAndDrop();
+        });
+
+        // 상태 메시지 표시
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 카테고리 목록 로드
+        async function loadCategories() {
+            if (!currentToken) {
+                showStatus('categoryStatus', 'error', '❌ 먼저 관리자 토큰을 설정해주세요.');
+                return;
+            }
+
+            try {
+                showStatus('categoryStatus', 'loading', '카테고리 목록을 불러오는 중...');
+
+                const response = await fetch('/api/admin/avatars/categories', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    categories = data.categories;
+                    renderCategories();
+                    showStatus('categoryStatus', 'success', `✅ ${categories.length}개의 카테고리를 불러왔습니다.`);
+                } else {
+                    showStatus('categoryStatus', 'error', `❌ ${data.message || '카테고리 목록 로드 실패'}`);
+                }
+
+            } catch (error) {
+                console.error('카테고리 목록 로드 오류:', error);
+                showStatus('categoryStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 카테고리 렌더링
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            if (categories.length === 0) {
+                container.innerHTML = '<p>등록된 카테고리가 없습니다.</p>';
+                return;
+            }
+
+            categories.forEach(category => {
+                // ID 필드 확인 - _id 또는 id 사용
+                const categoryId = category._id || category.id;
+                console.log('Category object:', category);
+                console.log('Category ID:', categoryId);
+                
+                const categoryCard = document.createElement('div');
+                const isExpanded = expandedCategories.has(categoryId);
+                categoryCard.className = `category-card ${isExpanded ? '' : 'collapsed'}`;
+                categoryCard.setAttribute('data-category-id', categoryId);
+                categoryCard.innerHTML = `
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <div class="category-title">${category.name} (${category.type})</div>
+                        <div>
+                            <button onclick="event.stopPropagation(); openCreateOptionModal('${categoryId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">옵션 추가</button>
+                            <button onclick="event.stopPropagation(); editCategory('${categoryId}')" class="btn-warning" style="padding: 5px 10px; font-size: 12px;">수정</button>
+                            <button onclick="event.stopPropagation(); deleteCategory('${categoryId}')" class="btn-danger" style="padding: 5px 10px; font-size: 12px;">삭제</button>
+                        </div>
+                    </div>
+                    <div class="category-options">
+                        <p><strong>옵션 수:</strong> ${category.options ? category.options.length : 0}개</p>
+                        <div class="options-grid" id="options-${categoryId}">
+                            ${renderOptions(category.options || [], categoryId)}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(categoryCard);
+            });
+        }
+
+        function toggleCategory(headerElement) {
+            const card = headerElement.closest('.category-card');
+            const categoryId = card.getAttribute('data-category-id');
+            
+            card.classList.toggle('collapsed');
+            
+            // 상태 추적
+            if (card.classList.contains('collapsed')) {
+                expandedCategories.delete(categoryId);
+            } else {
+                expandedCategories.add(categoryId);
+            }
+        }
+
+        // 옵션 렌더링
+        function renderOptions(options, categoryId) {
+            if (!options || options.length === 0) {
+                return '<p>등록된 옵션이 없습니다.</p>';
+            }
+
+            return options.map(option => {
+                const optionId = option._id || option.id;
+                return `
+                    <div class="option-card">
+                        <div class="option-image-container">
+                            ${option.thumbnailUrl ? `<img src="${option.thumbnailUrl}" alt="${option.name}" class="option-image">` : '<div class="option-image" style="background-color: #ddd; display: flex; align-items: center; justify-content: center;">썸네일 없음</div>'}
+                        </div>
+                        <div class="option-name">${option.name}</div>
+                        <div class="thumbnail-source">썸네일: ${option.thumbnailSource === 'user' ? '사용자 제공' : '자동 생성'}</div>
+                        <div class="option-actions">
+                            <button onclick="openEditOptionModal('${categoryId}', '${optionId}', '${option.name}')" class="btn-warning" style="padding: 3px 8px; font-size: 11px;">수정</button>
+                            <button onclick="deleteOption('${categoryId}', '${optionId}')" class="btn-danger" style="padding: 3px 8px; font-size: 11px;">삭제</button>
+                            <button onclick="regenerateThumbnail('${categoryId}', '${optionId}')" class="btn-secondary" style="padding: 3px 8px; font-size: 11px;">썸네일 재생성</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 업로드 모드 전환
+        function toggleUploadMode() {
+            isMultiMode = !isMultiMode;
+            const singleMode = document.getElementById('singleOptionMode');
+            const multiMode = document.getElementById('multiOptionMode');
+            const toggleBtn = document.getElementById('toggleModeBtn');
+            const submitBtn = document.getElementById('submitOptionBtn');
+
+            // 단일 모드의 필수 입력 필드들
+            const singleModeRequiredFields = [
+                document.getElementById('optionName'),
+                document.getElementById('optionImage')
+            ];
+
+            if (isMultiMode) {
+                singleMode.style.display = 'none';
+                multiMode.style.display = 'block';
+                toggleBtn.textContent = '단일 업로드 모드';
+                submitBtn.textContent = '일괄 업로드';
+                
+                // 단일 모드 필드들의 required 속성 제거
+                singleModeRequiredFields.forEach(field => {
+                    if (field) {
+                        field.removeAttribute('required');
+                    }
+                });
+            } else {
+                singleMode.style.display = 'block';
+                multiMode.style.display = 'none';
+                toggleBtn.textContent = '다중 업로드 모드';
+                submitBtn.textContent = '저장';
+                
+                // 단일 모드 필드들의 required 속성 복원
+                singleModeRequiredFields.forEach(field => {
+                    if (field) {
+                        field.setAttribute('required', 'required');
+                    }
+                });
+                
+                // 선택된 파일들 초기화
+                selectedFiles = [];
+                document.getElementById('fileItemsContainer').innerHTML = '';
+            }
+        }
+
+        // 드래그 앤 드롭 설정
+        function setupDragAndDrop() {
+            const container = document.getElementById('multiUploadContainer');
+            
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                container.classList.add('dragover');
+            });
+
+            container.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                container.classList.remove('dragover');
+            });
+
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                container.classList.remove('dragover');
+                
+                const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+                addFiles(files);
+            });
+
+            container.addEventListener('click', () => {
+                document.getElementById('multiOptionImages').click();
+            });
+
+            document.getElementById('multiOptionImages').addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                addFiles(files);
+            });
+        }
+
+        // 파일 추가
+        function addFiles(files) {
+            files.forEach(file => {
+                const fileId = Date.now() + Math.random();
+                const fileData = {
+                    id: fileId,
+                    file: file,
+                    name: file.name.replace(/\.[^/.]+$/, ""), // 확장자 제거
+                    color: '#000000',
+                    order: selectedFiles.length,
+                    thumbnailFile: null
+                };
+                
+                selectedFiles.push(fileData);
+            });
+            
+            renderFileItems();
+        }
+
+        // 파일 아이템 렌더링
+        function renderFileItems() {
+            const container = document.getElementById('fileItemsContainer');
+            container.innerHTML = '';
+
+            selectedFiles.forEach(fileData => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <img src="${URL.createObjectURL(fileData.file)}" alt="미리보기" class="file-preview">
+                    <div class="file-info">
+                        <div class="form-group">
+                            <label>옵션 이름</label>
+                            <input type="text" value="${fileData.name}" onchange="updateFileName(${fileData.id}, this.value)">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>색상</label>
+                                <input type="color" value="${fileData.color}" onchange="updateFileColor(${fileData.id}, this.value)">
+                            </div>
+                            <div class="form-group">
+                                <label>순서</label>
+                                <input type="number" value="${fileData.order}" min="0" onchange="updateFileOrder(${fileData.id}, this.value)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>썸네일 (선택사항)</label>
+                            <input type="file" accept="image/*" onchange="updateFileThumbnail(${fileData.id}, this.files[0])">
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button type="button" class="remove-file" onclick="removeFile(${fileData.id})">삭제</button>
+                    </div>
+                `;
+                container.appendChild(fileItem);
+            });
+        }
+
+        // 파일 정보 업데이트 함수들
+        function updateFileName(fileId, name) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.name = name;
+        }
+
+        function updateFileColor(fileId, color) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.color = color;
+        }
+
+        function updateFileOrder(fileId, order) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.order = parseInt(order);
+        }
+
+        function updateFileThumbnail(fileId, thumbnailFile) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.thumbnailFile = thumbnailFile;
+        }
+
+        function removeFile(fileId) {
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+            renderFileItems();
+        }
+
+        // 일괄 설정 적용
+        function applyBatchSettings() {
+            const batchColor = document.getElementById('batchColor').value;
+            const batchOrderStart = parseInt(document.getElementById('batchOrderStart').value) || 0;
+
+            selectedFiles.forEach((fileData, index) => {
+                fileData.color = batchColor;
+                fileData.order = batchOrderStart + index;
+            });
+
+            renderFileItems();
+        }
+
+        // 카테고리 생성 모달 열기
+        function openCreateCategoryModal() {
+            document.getElementById('categoryModalTitle').textContent = '📁 새 카테고리 추가';
+            document.getElementById('categoryForm').reset();
+            document.getElementById('categoryId').value = '';
+            
+            const modal = document.getElementById('categoryModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 카테고리 모달 닫기
+        function closeCategoryModal() {
+            const modal = document.getElementById('categoryModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+
+        // 옵션 생성 모달 열기
+        function openCreateOptionModal(categoryId) {
+            document.getElementById('optionModalTitle').textContent = '🎭 새 아바타 옵션 추가';
+            document.getElementById('optionForm').reset();
+            document.getElementById('optionCategoryId').value = categoryId;
+            document.getElementById('optionId').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('thumbnailPreview').innerHTML = '';
+            
+            // 모드 초기화 - 단일 모드로 시작
+            isMultiMode = false;
+            document.getElementById('singleOptionMode').style.display = 'block';
+            document.getElementById('multiOptionMode').style.display = 'none';
+            document.getElementById('toggleModeBtn').textContent = '다중 업로드 모드';
+            document.getElementById('submitOptionBtn').textContent = '저장';
+            
+            // 단일 모드 필드들의 required 속성 복원
+            const optionNameField = document.getElementById('optionName');
+            const optionImageField = document.getElementById('optionImage');
+            if (optionNameField) optionNameField.setAttribute('required', 'required');
+            if (optionImageField) optionImageField.setAttribute('required', 'required');
+            
+            selectedFiles = [];
+            document.getElementById('fileItemsContainer').innerHTML = '';
+            
+            const modal = document.getElementById('optionModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 옵션 수정 모달 열기
+        function openEditOptionModal(categoryId, optionId, optionName) {
+            // 옵션 정보를 찾기 위해 카테고리에서 옵션 찾기
+            const category = categories.find(c => (c._id || c.id) === categoryId);
+            if (!category || !category.options) {
+                alert('카테고리 또는 옵션을 찾을 수 없습니다.');
+                return;
+            }
+
+            const option = category.options.find(opt => (opt._id || opt.id) === optionId);
+            if (!option) {
+                alert('옵션을 찾을 수 없습니다.');
+                return;
+            }
+
+            document.getElementById('optionModalTitle').textContent = `🎭 아바타 옵션 수정: ${optionName}`;
+            document.getElementById('optionCategoryId').value = categoryId;
+            document.getElementById('optionId').value = optionId;
+            document.getElementById('optionName').value = option.name;
+            document.getElementById('optionColor').value = option.color || '#000000';
+            document.getElementById('optionOrder').value = option.order || 0;
+            
+            // 수정 모드에서는 단일 모드만 사용
+            isMultiMode = false;
+            document.getElementById('singleOptionMode').style.display = 'block';
+            document.getElementById('multiOptionMode').style.display = 'none';
+            document.getElementById('toggleModeBtn').style.display = 'none'; // 수정 모드에서는 모드 전환 숨김
+            document.getElementById('submitOptionBtn').textContent = '저장';
+            
+            // 수정 모드에서는 이미지가 필수가 아님 (기존 이미지 유지 가능)
+            const optionNameField = document.getElementById('optionName');
+            const optionImageField = document.getElementById('optionImage');
+            if (optionNameField) optionNameField.setAttribute('required', 'required');
+            if (optionImageField) optionImageField.removeAttribute('required');
+            
+            // 이미지 미리보기
+            const imagePreview = document.getElementById('imagePreview');
+            const thumbnailPreview = document.getElementById('thumbnailPreview');
+            
+            imagePreview.innerHTML = option.imageUrl ? 
+                `<img src="${option.imageUrl}" alt="현재 이미지" class="image-preview">` : 
+                '<p>현재 이미지 없음</p>';
+                
+            thumbnailPreview.innerHTML = option.thumbnailUrl ? 
+                `<img src="${option.thumbnailUrl}" alt="현재 썸네일" class="image-preview" style="max-width: 100px; max-height: 100px;"><br><small>현재 썸네일 (${option.thumbnailSource === 'user' ? '사용자 제공' : '자동 생성'})</small>` : 
+                '<p>현재 썸네일 없음</p>';
+            
+            const modal = document.getElementById('optionModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 옵션 모달 닫기
+        function closeOptionModal() {
+            const modal = document.getElementById('optionModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            
+            // 모드 전환 버튼 다시 표시
+            document.getElementById('toggleModeBtn').style.display = 'inline-block';
+            
+            // 선택된 파일들 초기화
+            selectedFiles = [];
+            document.getElementById('fileItemsContainer').innerHTML = '';
+        }
+
+        // 이미지 미리보기 처리
+        document.getElementById('optionImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="이미지 미리보기" class="image-preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+
+        document.getElementById('optionThumbnail').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('thumbnailPreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="썸네일 미리보기" class="image-preview" style="max-width: 100px; max-height: 100px;">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+
+        // 진행률 업데이트
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('uploadStatus').textContent = `${current}/${total} 업로드 중...`;
+        }
+
+        // 카테고리 폼 제출
+        document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentToken) {
+                alert('관리자 토큰이 설정되지 않았습니다.');
+                return;
+            }
+
+            const categoryId = document.getElementById('categoryId').value;
+            const isEdit = !!categoryId;
+            
+            const formData = {
+                name: document.getElementById('categoryName').value,
+                type: document.getElementById('categoryType').value,
+                order: parseInt(document.getElementById('categoryOrder').value) || 0
+            };
+
+            try {
+                const url = isEdit ? 
+                    `/api/admin/avatars/categories/${categoryId}` : 
+                    '/api/admin/avatars/categories';
+                
+                const response = await fetch(url, {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ 카테고리가 성공적으로 ${isEdit ? '수정' : '추가'}되었습니다.`);
+                    closeCategoryModal();
+                    loadCategories();
+                } else {
+                    alert(`❌ ${isEdit ? '수정' : '추가'} 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('카테고리 저장 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        });
+
+        // 옵션 폼 제출
+        document.getElementById('optionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentToken) {
+                alert('관리자 토큰이 설정되지 않았습니다.');
+                return;
+            }
+
+            const categoryId = document.getElementById('optionCategoryId').value;
+            const optionId = document.getElementById('optionId').value;
+            const isEdit = !!optionId;
+
+            if (isMultiMode && !isEdit) {
+                // 다중 업로드 모드 - 파일 선택 검증
+                if (selectedFiles.length === 0) {
+                    alert('업로드할 파일을 선택해주세요.');
+                    return;
+                }
+                
+                // 파일별 이름 검증
+                for (let fileData of selectedFiles) {
+                    if (!fileData.name || fileData.name.trim() === '') {
+                        alert('모든 파일의 옵션 이름을 입력해주세요.');
+                        return;
+                    }
+                }
+                
+                await handleMultipleUpload(categoryId);
+            } else {
+                // 단일 업로드 모드 - 기존 검증 로직
+                const optionName = document.getElementById('optionName').value;
+                const imageFile = document.getElementById('optionImage').files[0];
+                
+                if (!optionName || optionName.trim() === '') {
+                    alert('옵션 이름을 입력해주세요.');
+                    return;
+                }
+                
+                if (!isEdit && !imageFile) {
+                    alert('새 옵션을 추가할 때는 이미지가 필요합니다.');
+                    return;
+                }
+                
+                await handleSingleUpload(categoryId, optionId, isEdit);
+            }
+        });
+
+        // 단일 업로드 처리
+        async function handleSingleUpload(categoryId, optionId, isEdit) {
+            const formData = new FormData();
+            formData.append('name', document.getElementById('optionName').value);
+            formData.append('color', document.getElementById('optionColor').value);
+            formData.append('order', document.getElementById('optionOrder').value);
+
+            const imageFile = document.getElementById('optionImage').files[0];
+            const thumbnailFile = document.getElementById('optionThumbnail').files[0];
+
+            if (!isEdit && !imageFile) {
+                alert('새 옵션을 추가할 때는 이미지가 필요합니다.');
+                return;
+            }
+
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            if (thumbnailFile) {
+                formData.append('thumbnail', thumbnailFile);
+            }
+
+            try {
+                const url = isEdit ? 
+                    `/api/admin/avatars/categories/${categoryId}/options/${optionId}` : 
+                    `/api/admin/avatars/categories/${categoryId}/options`;
+                
+                const response = await fetch(url, {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ 옵션이 성공적으로 ${isEdit ? '수정' : '추가'}되었습니다.`);
+                    closeOptionModal();
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryOptions(categoryId);
+                } else {
+                    alert(`❌ ${isEdit ? '수정' : '추가'} 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('옵션 저장 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 다중 업로드 처리
+        async function handleMultipleUpload(categoryId) {
+            if (selectedFiles.length === 0) {
+                alert('업로드할 파일을 선택해주세요.');
+                return;
+            }
+
+            const progressContainer = document.getElementById('uploadProgress');
+            progressContainer.style.display = 'block';
+            
+            let successCount = 0;
+            let failCount = 0;
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const fileData = selectedFiles[i];
+                updateProgress(i + 1, selectedFiles.length);
+
+                const formData = new FormData();
+                formData.append('name', fileData.name);
+                formData.append('color', fileData.color);
+                formData.append('order', fileData.order.toString());
+                formData.append('image', fileData.file);
+                
+                if (fileData.thumbnailFile) {
+                    formData.append('thumbnail', fileData.thumbnailFile);
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/avatars/categories/${categoryId}/options`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${currentToken}`
+                        },
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.error(`파일 업로드 실패: ${fileData.name}`);
+                    }
+
+                } catch (error) {
+                    failCount++;
+                    console.error(`파일 업로드 오류: ${fileData.name}`, error);
+                }
+            }
+
+            progressContainer.style.display = 'none';
+            
+            if (successCount > 0) {
+                alert(`✅ ${successCount}개의 옵션이 성공적으로 추가되었습니다.${failCount > 0 ? ` (실패: ${failCount}개)` : ''}`);
+                closeOptionModal();
+                // 전체 새로고침 대신 해당 카테고리만 업데이트
+                await updateCategoryOptions(categoryId);
+            } else {
+                alert(`❌ 모든 업로드가 실패했습니다.`);
+            }
+        }
+
+        // 카테고리 수정
+        function editCategory(categoryId) {
+            console.log('editCategory called with categoryId:', categoryId);
+            console.log('Available categories:', categories);
+            
+            // _id 또는 id 필드로 카테고리 찾기
+            const category = categories.find(c => c._id === categoryId || c.id === categoryId);
+            console.log('Found category:', category);
+            
+            if (!category) {
+                console.error('Category not found with ID:', categoryId);
+                console.error('Available category IDs:', categories.map(c => c._id || c.id));
+                alert('카테고리를 찾을 수 없습니다.');
+                return;
+            }
+
+            document.getElementById('categoryModalTitle').textContent = '📁 카테고리 수정';
+            document.getElementById('categoryId').value = category._id || category.id;
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryType').value = category.type;
+            document.getElementById('categoryOrder').value = category.order || 0;
+            
+            const modal = document.getElementById('categoryModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 카테고리 삭제
+        async function deleteCategory(categoryId) {
+            console.log('deleteCategory called with categoryId:', categoryId);
+            
+            if (!confirm('정말로 이 카테고리를 삭제하시겠습니까? 모든 옵션도 함께 삭제됩니다.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/avatars/categories/${categoryId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 카테고리가 성공적으로 삭제되었습니다.');
+                    loadCategories();
+                } else {
+                    alert(`❌ 삭제 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('카테고리 삭제 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 옵션 삭제
+        async function deleteOption(categoryId, optionId) {
+            if (!confirm('정말로 이 옵션을 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/avatars/categories/${categoryId}/options/${optionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 옵션이 성공적으로 삭제되었습니다.');
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryOptions(categoryId);
+                } else {
+                    alert(`❌ 삭제 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('옵션 삭제 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 특정 카테고리의 옵션만 업데이트
+        async function updateCategoryOptions(categoryId) {
+            try {
+                const response = await fetch(`/api/admin/avatars/categories/${categoryId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 전체 categories 배열에서 해당 카테고리 업데이트
+                    const categoryIndex = categories.findIndex(c => (c._id || c.id) === categoryId);
+                    if (categoryIndex !== -1) {
+                        // API 응답이 직접 카테고리 객체를 반환하므로 data를 사용
+                        categories[categoryIndex] = data;
+                        
+                        // 해당 카테고리의 옵션 그리드만 업데이트
+                        const optionsGrid = document.getElementById(`options-${categoryId}`);
+                        if (optionsGrid) {
+                            optionsGrid.innerHTML = renderOptions(data.options || [], categoryId);
+                        }
+                    }
+                } else {
+                    console.error('카테고리 업데이트 실패:', data.message);
+                }
+
+            } catch (error) {
+                console.error('카테고리 업데이트 오류:', error);
+            }
+        }
+
+        // 썸네일 재생성
+        async function regenerateThumbnail(categoryId, optionId) {
+            if (!confirm('이 옵션의 썸네일을 재생성하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/avatars/categories/${categoryId}/options/${optionId}/thumbnail/regenerate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 썸네일이 성공적으로 재생성되었습니다.');
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryOptions(categoryId);
+                } else {
+                    alert(`❌ 썸네일 재생성 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('썸네일 재생성 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const categoryModal = document.getElementById('categoryModal');
+            const optionModal = document.getElementById('optionModal');
+            
+            if (event.target === categoryModal) {
+                closeCategoryModal();
+            }
+            if (event.target === optionModal) {
+                closeOptionModal();
+            }
+        }
+    </script>
+</body>
+
+</html>

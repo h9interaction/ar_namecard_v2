@@ -4,6 +4,8 @@ export interface IAvatarOption {
   name: string;
   imageUrl: string;
   modelUrl?: string;
+  thumbnailUrl?: string;
+  thumbnailSource?: 'user' | 'auto';
   color?: string;
   order: number;
   createdAt: Date;
@@ -33,6 +35,15 @@ const avatarOptionSchema = new Schema<IAvatarOption>({
   modelUrl: {
     type: String,
     trim: true
+  },
+  thumbnailUrl: {
+    type: String,
+    trim: true
+  },
+  thumbnailSource: {
+    type: String,
+    enum: ['user', 'auto'],
+    default: 'auto'
   },
   color: {
     type: String,

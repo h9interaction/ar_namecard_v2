@@ -13,6 +13,8 @@ export interface IItem {
   modelUrl?: string;
   animationUrl?: string;
   animation?: IItemAnimation;
+  thumbnailUrl?: string;
+  thumbnailSource?: 'user' | 'auto';
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +71,15 @@ const itemSchema = new Schema<IItem>({
   animation: {
     type: itemAnimationSchema,
     required: false
+  },
+  thumbnailUrl: {
+    type: String,
+    trim: true
+  },
+  thumbnailSource: {
+    type: String,
+    enum: ['user', 'auto'],
+    default: 'auto'
   },
   order: {
     type: Number,

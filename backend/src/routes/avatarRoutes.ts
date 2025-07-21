@@ -19,37 +19,33 @@ const avatarValidation = [
   body('item1').optional().trim(),
   body('item2').optional().trim(),
   body('item3').optional().trim(),
-  body('avatarImgUrl').optional().isURL().withMessage('Avatar image URL must be valid').trim()
+  body('avatarImgUrl').optional().matches(/^\/uploads\/.*\.(png|jpg|jpeg|gif|webp)$/i).withMessage('Avatar image URL must be a valid image path').trim()
 ];
 
 /**
  * @swagger
  * /api/avatars/{userId}:
  *   get:
- *     summary: 아바타 정보 조회
+ *     summary: 아바타 정보 조회 (사용자 정보 포함)
  *     tags: [Avatars]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
  *         required: true
  *         schema:
  *           type: string
- *         description: 사용자 ID
+ *         description: 사용자 ID 또는 arId
  *     responses:
  *       200:
- *         description: 아바타 정보
+ *         description: 사용자 정보와 아바타 정보가 합쳐진 응답
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/UserCustomization'
- *       401:
- *         description: 인증 실패
+ *               $ref: '#/components/schemas/AvatarWithUser'
  *       404:
  *         description: 아바타를 찾을 수 없음
  */
-router.get('/:userId', authenticateToken, getAvatarByUserId);
+router.get('/:userId', getAvatarByUserId);
 
 /**
  * @swagger

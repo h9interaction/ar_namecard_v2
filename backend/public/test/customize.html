@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아바타 커스터마이징 - AR 명함</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: block;
+            padding: 30px;
+            padding-right: 430px;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .right-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 380px;
+            height: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        /* 인증 섹션 */
+        .auth-section {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            color: #2d3436;
+        }
+
+        .auth-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .auth-controls input {
+            flex: 1;
+            min-width: 300px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-controls input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #636e72 0%, #2d3436 100%);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 아바타 선택 영역 */
+        .avatar-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .avatar-category {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .avatar-category.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .category-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .category-selection {
+            font-size: 0.9em;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .avatar-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+        }
+
+        .avatar-option {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .avatar-option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .avatar-option.selected {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .avatar-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #667eea;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .avatar-option img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .avatar-option-name {
+            text-align: center;
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        /* 아이템 선택 영역 */
+        .item-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .item-category {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .item-category.role-category {
+            border-color: #e17055;
+            background: #fff8f6;
+        }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+        }
+
+        .item-card {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .item-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .item-card img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+        }
+
+        .item-card-name {
+            padding: 8px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        /* 슬롯 시스템 */
+        .item-slots {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .item-slot {
+            width: 100px;
+            height: 100px;
+            border: 3px dashed #dee2e6;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            background: #f8f9fa;
+        }
+
+        .item-slot.role-slot {
+            border-color: #e17055;
+            background: #fff8f6;
+        }
+
+        .item-slot.dragover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: scale(1.05);
+        }
+
+        .item-slot.filled {
+            border-color: #00b894;
+            border-style: solid;
+            background: white;
+        }
+
+        .item-slot-label {
+            font-size: 0.7em;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .item-slot-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item-slot img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .item-slot-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #e17055;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+        }
+
+        .item-slot.filled:hover .item-slot-remove {
+            display: block;
+        }
+
+        /* 메시지 입력 */
+        .message-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .message-counter {
+            text-align: right;
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* 미리보기 영역 */
+        .preview-section {
+            text-align: center;
+        }
+
+        .preview-canvas {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+            max-width: 100%;
+        }
+
+        .preview-placeholder {
+            width: 350px;
+            height: 350px;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 1.1em;
+            margin: 0 auto 20px;
+        }
+
+        .selected-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .selected-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .selected-item img {
+            width: 30px;
+            height: 30px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .right-panel {
+                position: static;
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+                padding-right: 20px;
+            }
+            
+            .right-panel {
+                position: static;
+                width: 100%;
+                max-height: none;
+                margin-top: 30px;
+                right: auto;
+                top: auto;
+            }
+            
+            .auth-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .auth-controls input {
+                min-width: auto;
+            }
+            
+            .item-slots {
+                flex-wrap: wrap;
+            }
+            
+            .avatar-options {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            }
+            
+            .item-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 아바타 커스터마이징</h1>
+            <p>나만의 아바타와 아이템을 선택하여 개성 넘치는 명함을 만들어보세요</p>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <!-- 인증 섹션 -->
+                <div class="section auth-section">
+                    <div class="section-title">🔐 사용자 인증</div>
+                    <p style="margin-bottom: 15px;">커스터마이징 기능을 사용하려면 로그인이 필요합니다.</p>
+                    <div class="auth-controls">
+                        <input type="text" id="userToken" placeholder="사용자 JWT 토큰 입력">
+                        <button class="btn btn-primary" onclick="setUserToken()">토큰 설정</button>
+                        <button class="btn btn-success" onclick="getUserToken()">테스트 토큰 생성</button>
+                        <button class="btn btn-secondary" onclick="clearUserToken()">토큰 초기화</button>
+                    </div>
+                    <div id="authStatus"></div>
+                </div>
+
+                <!-- 아바타 선택 섹션 -->
+                <div class="section">
+                    <div class="section-title">👤 아바타 선택</div>
+                    <div id="avatarStatus"></div>
+                    <div id="avatarCategories" class="avatar-categories"></div>
+                </div>
+
+                <!-- 역할 아이템 선택 섹션 -->
+                <div class="section">
+                    <div class="section-title">💼 역할 선택</div>
+                    <div id="roleStatus"></div>
+                    <div id="roleSlot" class="item-slots">
+                        <div class="item-slot role-slot" data-slot="role">
+                            <div class="item-slot-label">역할</div>
+                            <div class="item-slot-content">
+                                <span style="font-size: 0.8em; color: #6c757d;">역할을 선택하세요</span>
+                            </div>
+                            <button class="item-slot-remove" onclick="removeFromSlot('role')">×</button>
+                        </div>
+                    </div>
+                    <div id="roleCategory" class="item-category role-category"></div>
+                </div>
+
+                <!-- 일반 아이템 선택 섹션 -->
+                <div class="section">
+                    <div class="section-title">🎮 아이템 선택</div>
+                    <div id="itemStatus"></div>
+                    <div class="item-slots">
+                        <div class="item-slot" data-slot="item1">
+                            <div class="item-slot-label">아이템 1</div>
+                            <div class="item-slot-content">
+                                <span style="font-size: 0.8em; color: #6c757d;">아이템을 선택하세요</span>
+                            </div>
+                            <button class="item-slot-remove" onclick="removeFromSlot('item1')">×</button>
+                        </div>
+                        <div class="item-slot" data-slot="item2">
+                            <div class="item-slot-label">아이템 2</div>
+                            <div class="item-slot-content">
+                                <span style="font-size: 0.8em; color: #6c757d;">아이템을 선택하세요</span>
+                            </div>
+                            <button class="item-slot-remove" onclick="removeFromSlot('item2')">×</button>
+                        </div>
+                        <div class="item-slot" data-slot="item3">
+                            <div class="item-slot-label">아이템 3</div>
+                            <div class="item-slot-content">
+                                <span style="font-size: 0.8em; color: #6c757d;">아이템을 선택하세요</span>
+                            </div>
+                            <button class="item-slot-remove" onclick="removeFromSlot('item3')">×</button>
+                        </div>
+                    </div>
+                    <div id="itemCategories" class="item-categories"></div>
+                </div>
+
+                <!-- 메시지 입력 섹션 -->
+                <div class="section">
+                    <div class="section-title">💬 한줄 메시지</div>
+                    <textarea id="userMessage" class="message-input" placeholder="하고 싶은 말을 한 줄로 적어주세요..." maxlength="100" rows="3"></textarea>
+                    <div class="message-counter">
+                        <span id="messageCount">0</span> / 100
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <!-- 미리보기 섹션 -->
+                <div class="preview-section">
+                    <h3 style="margin-bottom: 20px; color: #495057;">🖼️ 미리보기</h3>
+                    <div id="previewContainer">
+                        <div class="preview-placeholder">
+                            아바타를 선택하면<br>여기에 미리보기가 표시됩니다
+                        </div>
+                    </div>
+                    <canvas id="avatarCanvas" class="preview-canvas" width="350" height="350" style="display: none;"></canvas>
+                    
+                    <div class="selected-items">
+                        <div id="selectedAvatarInfo"></div>
+                        <div id="selectedItemsInfo"></div>
+                    </div>
+                    
+                    <button class="btn btn-success" id="saveCustomization" onclick="saveCustomization()" style="width: 100%; margin-top: 20px;" disabled>
+                        💾 저장하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentUserToken = '';
+        let avatarCategories = [];
+        let itemCategories = [];
+        let avatarSelections = {}; // { categoryType: optionId }
+        let roleSelection = ''; // role 아이템 ID
+        let itemSelections = { item1: '', item2: '', item3: '' }; // 슬롯별 아이템 ID
+        let userMessage = '';
+        let isLoading = false;
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            initializeApp();
+        });
+
+        // 앱 초기화
+        function initializeApp() {
+            // 저장된 토큰 복원
+            const savedToken = localStorage.getItem('userToken');
+            if (savedToken) {
+                document.getElementById('userToken').value = savedToken;
+                currentUserToken = savedToken;
+                showStatus('authStatus', 'success', '✅ 저장된 토큰을 불러왔습니다.');
+                loadData();
+            }
+
+            // 메시지 카운터 설정
+            const messageInput = document.getElementById('userMessage');
+            messageInput.addEventListener('input', function() {
+                const count = this.value.length;
+                document.getElementById('messageCount').textContent = count;
+                userMessage = this.value;
+                updateSaveButton();
+            });
+
+            // 드래그 앤 드롭 설정
+            setupDragAndDrop();
+        }
+
+        // 상태 메시지 표시
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 토큰 설정
+        function setUserToken() {
+            const token = document.getElementById('userToken').value.trim();
+            if (!token) {
+                showStatus('authStatus', 'error', '토큰을 입력해주세요.');
+                return;
+            }
+            
+            currentUserToken = token;
+            localStorage.setItem('userToken', token);
+            showStatus('authStatus', 'success', '✅ 사용자 토큰이 설정되었습니다.');
+            loadData();
+        }
+
+        // 테스트 토큰 생성
+        async function getUserToken() {
+            try {
+                showStatus('authStatus', 'loading', '테스트 토큰을 생성하는 중...');
+
+                const response = await fetch('/api/auth/test-token/002', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const token = data.token;
+                    document.getElementById('userToken').value = token;
+                    currentUserToken = token;
+                    localStorage.setItem('userToken', token);
+                    
+                    showStatus('authStatus', 'success', `✅ 테스트 토큰이 생성되었습니다. (사용자: ${data.user.nameKr})`);
+                    loadData();
+                } else {
+                    showStatus('authStatus', 'error', `❌ 토큰 생성 실패: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('토큰 생성 오류:', error);
+                showStatus('authStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 토큰 초기화
+        function clearUserToken() {
+            currentUserToken = '';
+            localStorage.removeItem('userToken');
+            document.getElementById('userToken').value = '';
+            showStatus('authStatus', 'success', '🔄 토큰이 초기화되었습니다.');
+            
+            // 데이터 초기화
+            avatarCategories = [];
+            itemCategories = [];
+            avatarSelections = {};
+            roleSelection = '';
+            itemSelections = { item1: '', item2: '', item3: '' };
+            
+            // UI 초기화
+            document.getElementById('avatarCategories').innerHTML = '';
+            document.getElementById('roleCategory').innerHTML = '';
+            document.getElementById('itemCategories').innerHTML = '';
+            updatePreview();
+            updateSaveButton();
+        }
+
+        // 데이터 로드
+        async function loadData() {
+            if (!currentUserToken) {
+                showStatus('authStatus', 'error', '❌ 먼저 사용자 토큰을 설정해주세요.');
+                return;
+            }
+
+            try {
+                // 1. 아바타 및 아이템 카테고리 로드
+                await Promise.all([
+                    loadAvatarCategories(),
+                    loadItemCategories()
+                ]);
+
+                // 2. 기존 사용자 데이터 로드 (카테고리 로드 완료 후)
+                await loadUserCustomization();
+            } catch (error) {
+                console.error('데이터 로드 오류:', error);
+            }
+        }
+
+        // 저장 버튼 상태 업데이트
+        function updateSaveButton() {
+            const saveButton = document.getElementById('saveCustomization');
+            const hasAvatarSelection = Object.keys(avatarSelections).length > 0;
+            const hasToken = !!currentUserToken;
+            
+            saveButton.disabled = !hasAvatarSelection || !hasToken || isLoading;
+        }
+
+        // 드래그 앤 드롭 설정
+        function setupDragAndDrop() {
+            const slots = document.querySelectorAll('.item-slot');
+            
+            slots.forEach(slot => {
+                slot.addEventListener('dragover', handleDragOver);
+                slot.addEventListener('drop', handleDrop);
+                slot.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const itemId = e.dataTransfer.getData('text/plain');
+            const slotType = e.currentTarget.getAttribute('data-slot');
+            
+            if (itemId && slotType) {
+                // 드래그된 아이템의 타입 확인
+                const draggedItemData = e.dataTransfer.getData('application/json');
+                if (draggedItemData) {
+                    try {
+                        const itemData = JSON.parse(draggedItemData);
+                        
+                        // Role 아이템은 Role 슬롯에만, 일반 아이템은 일반 슬롯에만
+                        if (itemData.slotType === 'role' && slotType !== 'role') {
+                            alert('❌ 역할 아이템은 역할 슬롯에만 배치할 수 있습니다.');
+                            return;
+                        }
+                        
+                        if (itemData.slotType !== 'role' && slotType === 'role') {
+                            alert('❌ 일반 아이템은 역할 슬롯에 배치할 수 없습니다.');
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('드래그 데이터 파싱 오류:', error);
+                    }
+                }
+                
+                addToSlot(slotType, itemId);
+            }
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        // 아바타 카테고리 로드
+        async function loadAvatarCategories() {
+            showStatus('avatarStatus', 'loading', '아바타 카테고리를 불러오는 중...');
+            
+            try {
+                const response = await fetch('/api/admin/avatars/categories', {
+                    headers: {
+                        'Authorization': `Bearer ${currentUserToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    avatarCategories = data.categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    renderAvatarCategories();
+                    showStatus('avatarStatus', 'success', `✅ ${avatarCategories.length}개의 아바타 카테고리를 불러왔습니다.`);
+                } else {
+                    let errorMessage = '아바타 카테고리 로드 실패';
+                    if (response.status === 401) {
+                        errorMessage = '인증이 만료되었습니다. 다시 로그인해주세요.';
+                    } else if (response.status === 403) {
+                        errorMessage = '접근 권한이 없습니다.';
+                    }
+                    showStatus('avatarStatus', 'error', `❌ ${data.message || errorMessage}`);
+                }
+            } catch (error) {
+                console.error('아바타 카테고리 로드 오류:', error);
+                showStatus('avatarStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 아바타 카테고리 렌더링
+        function renderAvatarCategories() {
+            const container = document.getElementById('avatarCategories');
+            container.innerHTML = '';
+
+            if (avatarCategories.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">등록된 아바타 카테고리가 없습니다.</p>';
+                return;
+            }
+
+            avatarCategories.forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'avatar-category';
+                categoryDiv.innerHTML = `
+                    <div class="category-header">
+                        <div class="category-name">${category.name}</div>
+                        <div class="category-selection" id="selection-${category.type}">선택 안함</div>
+                    </div>
+                    <div class="avatar-options" id="options-${category.type}">
+                        ${renderAvatarOptions(category.options || [], category.type)}
+                    </div>
+                `;
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        // 아바타 옵션 렌더링
+        function renderAvatarOptions(options, categoryType) {
+            if (!options || options.length === 0) {
+                return '<p style="text-align: center; color: #6c757d; padding: 20px;">등록된 옵션이 없습니다.</p>';
+            }
+
+            return options.map(option => {
+                const optionId = option._id || option.id;
+                const isSelected = avatarSelections[categoryType] === optionId;
+                
+                return `
+                    <div class="avatar-option ${isSelected ? 'selected' : ''}" 
+                         data-category="${categoryType}" 
+                         data-option="${optionId}"
+                         onclick="selectAvatarOption('${categoryType}', '${optionId}')">
+                        ${option.thumbnailUrl || option.imageUrl ? 
+                            `<img src="${option.thumbnailUrl || option.imageUrl}" alt="${option.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yOCAzMkM5LjUgMzIgMzIgMTggNDAgMThTNTcuNSAzMiA0MCAzMlMxOC41IDMyIDI4IDMyWiIgZmlsbD0iI0Q1RDhEQyIvPgo8cGF0aCBkPSJNMTYgNjRDMTYgNDkuNSAyNi41IDQwIDQwIDQwUzY0IDQ5LjUgNjQgNjRWNjRIMTZWNjRaIiBmaWxsPSIjRDVEOERDIi8+Cjwvc3ZnPg=='">`
+                            : `<div style="width: 100%; height: 80px; background: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 0.8em;">이미지 없음</div>`
+                        }
+                        <div class="avatar-option-name">${option.name}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 아이템 카테고리 로드
+        async function loadItemCategories() {
+            showStatus('itemStatus', 'loading', '아이템 카테고리를 불러오는 중...');
+            showStatus('roleStatus', 'loading', '역할 아이템을 불러오는 중...');
+            
+            try {
+                const response = await fetch('/api/admin/items/categories', {
+                    headers: {
+                        'Authorization': `Bearer ${currentUserToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    itemCategories = data.categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    
+                    // Role 카테고리와 일반 카테고리 분리
+                    const roleCategories = itemCategories.filter(cat => cat.type === 'role');
+                    const generalCategories = itemCategories.filter(cat => cat.type !== 'role');
+                    
+                    renderRoleCategory(roleCategories[0]); // Role 카테고리는 하나만 있다고 가정
+                    renderItemCategories(generalCategories);
+                    
+                    showStatus('itemStatus', 'success', `✅ ${generalCategories.length}개의 아이템 카테고리를 불러왔습니다.`);
+                    showStatus('roleStatus', 'success', `✅ 역할 아이템을 불러왔습니다.`);
+                } else {
+                    let errorMessage = '아이템 카테고리 로드 실패';
+                    if (response.status === 401) {
+                        errorMessage = '인증이 만료되었습니다. 다시 로그인해주세요.';
+                    } else if (response.status === 403) {
+                        errorMessage = '접근 권한이 없습니다.';
+                    }
+                    showStatus('itemStatus', 'error', `❌ ${data.message || errorMessage}`);
+                    showStatus('roleStatus', 'error', `❌ ${data.message || errorMessage}`);
+                }
+            } catch (error) {
+                console.error('아이템 카테고리 로드 오류:', error);
+                showStatus('itemStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+                showStatus('roleStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // Role 카테고리 렌더링
+        function renderRoleCategory(category) {
+            const container = document.getElementById('roleCategory');
+            container.innerHTML = '';
+
+            if (!category || !category.items || category.items.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">등록된 역할 아이템이 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="category-header">
+                    <div class="category-name">${category.name}</div>
+                </div>
+                <div class="item-grid">
+                    ${renderItemCards(category.items, 'role')}
+                </div>
+            `;
+        }
+
+        // 일반 아이템 카테고리 렌더링
+        function renderItemCategories(categories) {
+            const container = document.getElementById('itemCategories');
+            container.innerHTML = '';
+
+            if (categories.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">등록된 아이템 카테고리가 없습니다.</p>';
+                return;
+            }
+
+            categories.forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'item-category';
+                categoryDiv.innerHTML = `
+                    <div class="category-header">
+                        <div class="category-name">${category.name}</div>
+                    </div>
+                    <div class="item-grid">
+                        ${renderItemCards(category.items || [], 'item')}
+                    </div>
+                `;
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        // 아이템 카드 렌더링
+        function renderItemCards(items, slotType) {
+            if (!items || items.length === 0) {
+                return '<p style="text-align: center; color: #6c757d; padding: 20px;">등록된 아이템이 없습니다.</p>';
+            }
+
+            return items.map(item => {
+                const itemId = item._id || item.id;
+                const imageUrl = item.thumbnailUrl || item.imageUrl;
+                
+                return `
+                    <div class="item-card" 
+                         data-item-id="${itemId}" 
+                         data-slot-type="${slotType}"
+                         draggable="true"
+                         ondragstart="handleItemDragStart(event)"
+                         onclick="handleItemClick(event, '${itemId}', '${slotType}')">
+                        ${imageUrl ? 
+                            `<img src="${imageUrl}" alt="${item.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMTAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iNDAiIHI9IjE1IiBmaWxsPSIjRDVEOERDIi8+Cjx0ZXh0IHg9IjUwIiB5PSI2NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNkM3NTdEIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JVEVNPC90ZXh0Pgo8L3N2Zz4K'">`
+                            : `<div style="width: 100%; height: 80px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 0.8em;">이미지 없음</div>`
+                        }
+                        <div class="item-card-name">${item.name}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 아이템 드래그 시작
+        function handleItemDragStart(event) {
+            const itemId = event.currentTarget.getAttribute('data-item-id');
+            const slotType = event.currentTarget.getAttribute('data-slot-type');
+            
+            event.dataTransfer.setData('text/plain', itemId);
+            event.dataTransfer.setData('application/json', JSON.stringify({
+                itemId: itemId,
+                slotType: slotType
+            }));
+        }
+
+        // 아이템 클릭 처리 (모바일 대응)
+        function handleItemClick(event, itemId, slotType) {
+            // 빈 슬롯 찾기
+            let targetSlot = null;
+            
+            if (slotType === 'role') {
+                targetSlot = 'role';
+            } else {
+                // 일반 아이템의 경우 빈 슬롯 찾기
+                for (let i = 1; i <= 3; i++) {
+                    if (!itemSelections[`item${i}`]) {
+                        targetSlot = `item${i}`;
+                        break;
+                    }
+                }
+            }
+            
+            if (targetSlot) {
+                addToSlot(targetSlot, itemId);
+            } else {
+                alert('사용 가능한 슬롯이 없습니다. 기존 아이템을 제거한 후 다시 시도해주세요.');
+            }
+        }
+
+        // 아바타 옵션 선택
+        function selectAvatarOption(categoryType, optionId) {
+            // 이전 선택 해제
+            const prevOption = document.querySelector(`[data-category="${categoryType}"][data-option="${avatarSelections[categoryType]}"]`);
+            if (prevOption) {
+                prevOption.classList.remove('selected');
+            }
+
+            // 새로운 선택
+            avatarSelections[categoryType] = optionId;
+            
+            // UI 업데이트
+            const newOption = document.querySelector(`[data-category="${categoryType}"][data-option="${optionId}"]`);
+            if (newOption) {
+                newOption.classList.add('selected');
+            }
+
+            // 카테고리 선택 상태 업데이트
+            const selectionElement = document.getElementById(`selection-${categoryType}`);
+            if (selectionElement) {
+                const category = avatarCategories.find(cat => cat.type === categoryType);
+                const option = category?.options?.find(opt => (opt._id || opt.id) === optionId);
+                if (option) {
+                    selectionElement.textContent = option.name;
+                    selectionElement.parentElement.parentElement.classList.add('selected');
+                }
+            }
+
+            // 미리보기 업데이트
+            updatePreview();
+            updateSaveButton();
+        }
+
+        // 슬롯에 아이템 추가
+        function addToSlot(slotType, itemId) {
+            // 해당 아이템 정보 찾기
+            const item = findItemById(itemId);
+            if (!item) {
+                console.error('Item not found:', itemId);
+                return;
+            }
+
+            // 슬롯에 아이템 설정
+            if (slotType === 'role') {
+                roleSelection = itemId;
+            } else {
+                itemSelections[slotType] = itemId;
+            }
+
+            // 슬롯 UI 업데이트
+            updateSlotUI(slotType, item);
+            
+            // 미리보기 업데이트
+            updateSelectedItemsInfo();
+            updateSaveButton();
+        }
+
+        // 슬롯에서 아이템 제거
+        function removeFromSlot(slotType) {
+            if (slotType === 'role') {
+                roleSelection = '';
+            } else {
+                itemSelections[slotType] = '';
+            }
+
+            // 슬롯 UI 업데이트
+            clearSlotUI(slotType);
+            
+            // 미리보기 업데이트
+            updateSelectedItemsInfo();
+            updateSaveButton();
+        }
+
+        // 슬롯 UI 업데이트
+        function updateSlotUI(slotType, item) {
+            const slot = document.querySelector(`[data-slot="${slotType}"]`);
+            if (!slot) return;
+
+            const slotContent = slot.querySelector('.item-slot-content');
+            if (!slotContent) return;
+
+            const imageUrl = item.thumbnailUrl || item.imageUrl;
+            
+            slotContent.innerHTML = `
+                <img src="${imageUrl}" alt="${item.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjEwIiBmaWxsPSIjRDVEOERDIi8+Cjx0ZXh0IHg9IjMwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZpbGw9IiM2Qzc1N0QiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklURU08L3RleHQ+Cjwvc3ZnPgo='">
+                <div style="font-size: 0.7em; color: #495057; margin-top: 5px; text-align: center;">${item.name}</div>
+            `;
+            
+            slot.classList.add('filled');
+        }
+
+        // 슬롯 UI 초기화
+        function clearSlotUI(slotType) {
+            const slot = document.querySelector(`[data-slot="${slotType}"]`);
+            if (!slot) return;
+
+            const slotContent = slot.querySelector('.item-slot-content');
+            if (!slotContent) return;
+
+            let defaultText = '';
+            if (slotType === 'role') {
+                defaultText = '역할을 선택하세요';
+            } else {
+                defaultText = '아이템을 선택하세요';
+            }
+
+            slotContent.innerHTML = `<span style="font-size: 0.8em; color: #6c757d;">${defaultText}</span>`;
+            slot.classList.remove('filled');
+        }
+
+        // 아이템 ID로 아이템 찾기
+        function findItemById(itemId) {
+            for (const category of itemCategories) {
+                if (category.items) {
+                    for (const item of category.items) {
+                        if ((item._id || item.id) === itemId) {
+                            return item;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // 선택된 아이템 정보 업데이트
+        function updateSelectedItemsInfo() {
+            const container = document.getElementById('selectedItemsInfo');
+            if (!container) return;
+
+            const selectedItems = [];
+            
+            // Role 아이템 추가
+            if (roleSelection) {
+                const roleItem = findItemById(roleSelection);
+                if (roleItem) {
+                    selectedItems.push({
+                        type: 'role',
+                        name: roleItem.name,
+                        imageUrl: roleItem.thumbnailUrl || roleItem.imageUrl
+                    });
+                }
+            }
+
+            // 일반 아이템 추가
+            for (const [slotType, itemId] of Object.entries(itemSelections)) {
+                if (itemId) {
+                    const item = findItemById(itemId);
+                    if (item) {
+                        selectedItems.push({
+                            type: slotType,
+                            name: item.name,
+                            imageUrl: item.thumbnailUrl || item.imageUrl
+                        });
+                    }
+                }
+            }
+
+            if (selectedItems.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; font-size: 0.9em;">선택된 아이템이 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = selectedItems.map(item => `
+                <div class="selected-item">
+                    <img src="${item.imageUrl}" alt="${item.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMTUiIHI9IjUiIGZpbGw9IiNENUQ4REMiLz4KPC9zdmc+Cg=='">
+                    <div>
+                        <strong>${item.type === 'role' ? '역할' : item.type.toUpperCase()}:</strong> ${item.name}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 미리보기 업데이트
+        function updatePreview() {
+            const canvas = document.getElementById('avatarCanvas');
+            const previewContainer = document.getElementById('previewContainer');
+            const placeholder = previewContainer.querySelector('.preview-placeholder');
+            
+            // 아바타 선택이 없으면 placeholder 표시
+            if (Object.keys(avatarSelections).length === 0) {
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                }
+                canvas.style.display = 'none';
+                updateSelectedAvatarInfo();
+                return;
+            }
+            
+            // Canvas 표시, placeholder 숨김
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            canvas.style.display = 'block';
+            
+            // 아바타 합성
+            composeAvatar();
+        }
+
+        // 아바타 합성
+        async function composeAvatar() {
+            const canvas = document.getElementById('avatarCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Canvas 초기화
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 배경 설정 (투명 배경)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            try {
+                // 아바타 카테고리를 order 순서대로 정렬
+                const sortedCategories = avatarCategories
+                    .filter(category => avatarSelections[category.type])
+                    .sort((a, b) => (a.order || 0) - (b.order || 0));
+                
+                // 순서대로 이미지 레이어링
+                for (const category of sortedCategories) {
+                    const optionId = avatarSelections[category.type];
+                    const option = category.options?.find(opt => (opt._id || opt.id) === optionId);
+                    
+                    if (option && (option.imageUrl || option.thumbnailUrl)) {
+                        const imageUrl = option.imageUrl || option.thumbnailUrl;
+                        await drawImageOnCanvas(ctx, imageUrl, canvas.width, canvas.height);
+                    }
+                }
+                
+                // 선택된 아바타 정보 업데이트
+                updateSelectedAvatarInfo();
+                
+            } catch (error) {
+                console.error('아바타 합성 오류:', error);
+                
+                // 에러 발생 시 에러 메시지 표시
+                ctx.fillStyle = '#f8d7da';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#721c24';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('이미지 로드 실패', canvas.width / 2, canvas.height / 2);
+                ctx.fillText('다시 시도해주세요', canvas.width / 2, canvas.height / 2 + 25);
+            }
+        }
+
+        // Canvas에 이미지 그리기
+        function drawImageOnCanvas(ctx, imageUrl, canvasWidth, canvasHeight) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // CORS 문제 해결
+                
+                img.onload = function() {
+                    try {
+                        // 이미지를 Canvas 크기에 맞춰 그리기
+                        const aspectRatio = img.width / img.height;
+                        const canvasAspectRatio = canvasWidth / canvasHeight;
+                        
+                        let drawWidth, drawHeight, drawX, drawY;
+                        
+                        if (aspectRatio > canvasAspectRatio) {
+                            // 이미지가 Canvas보다 가로로 길 경우
+                            drawWidth = canvasWidth;
+                            drawHeight = canvasWidth / aspectRatio;
+                            drawX = 0;
+                            drawY = (canvasHeight - drawHeight) / 2;
+                        } else {
+                            // 이미지가 Canvas보다 세로로 길 경우
+                            drawWidth = canvasHeight * aspectRatio;
+                            drawHeight = canvasHeight;
+                            drawX = (canvasWidth - drawWidth) / 2;
+                            drawY = 0;
+                        }
+                        
+                        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                img.onerror = function() {
+                    reject(new Error(`이미지 로드 실패: ${imageUrl}`));
+                };
+                
+                img.src = imageUrl;
+            });
+        }
+
+        // 선택된 아바타 정보 업데이트
+        function updateSelectedAvatarInfo() {
+            const container = document.getElementById('selectedAvatarInfo');
+            if (!container) return;
+
+            const selectedAvatars = [];
+            
+            for (const [categoryType, optionId] of Object.entries(avatarSelections)) {
+                const category = avatarCategories.find(cat => cat.type === categoryType);
+                const option = category?.options?.find(opt => (opt._id || opt.id) === optionId);
+                
+                if (option) {
+                    selectedAvatars.push({
+                        categoryName: category.name,
+                        optionName: option.name,
+                        imageUrl: option.thumbnailUrl || option.imageUrl
+                    });
+                }
+            }
+
+            if (selectedAvatars.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; font-size: 0.9em;">선택된 아바타가 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #495057; font-size: 1em;">선택된 아바타</h4>
+                    ${selectedAvatars.map(avatar => `
+                        <div class="selected-item">
+                            <img src="${avatar.imageUrl}" alt="${avatar.optionName}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMTUiIHI9IjUiIGZpbGw9IiNENUQ4REMiLz4KPC9zdmc+Cg=='">
+                            <div>
+                                <strong>${avatar.categoryName}:</strong> ${avatar.optionName}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Canvas에서 Blob 생성
+        function getCanvasBlob() {
+            return new Promise((resolve, reject) => {
+                const canvas = document.getElementById('avatarCanvas');
+                
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Canvas to Blob 변환 실패'));
+                        }
+                    },
+                    'image/png',
+                    0.9
+                );
+            });
+        }
+
+        // 커스터마이징 저장
+        async function saveCustomization() {
+            if (!currentUserToken) {
+                alert('❌ 로그인이 필요합니다. 먼저 토큰을 설정해주세요.');
+                return;
+            }
+
+            if (Object.keys(avatarSelections).length === 0) {
+                alert('❌ 아바타를 선택해주세요.');
+                return;
+            }
+
+            const saveButton = document.getElementById('saveCustomization');
+            const originalText = saveButton.textContent;
+            
+            try {
+                isLoading = true;
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<div class="loading-spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>';
+
+                // 1. 합성된 아바타 이미지 업로드
+                let avatarImgUrl = '';
+                if (Object.keys(avatarSelections).length > 0) {
+                    const blob = await getCanvasBlob();
+                    avatarImgUrl = await uploadAvatarImage(blob);
+                }
+
+                // 2. 사용자 커스터마이징 데이터 저장
+                const customizationData = {
+                    avatarSelections: avatarSelections,
+                    avatarImgUrl: avatarImgUrl,
+                    message: userMessage || '',
+                    role: roleSelection || '',
+                    item1: itemSelections.item1 || '',
+                    item2: itemSelections.item2 || '',
+                    item3: itemSelections.item3 || ''
+                };
+
+                await saveUserCustomization(customizationData);
+
+                // 성공 메시지
+                alert('✅ 커스터마이징이 성공적으로 저장되었습니다!');
+                
+            } catch (error) {
+                console.error('저장 오류:', error);
+                alert(`❌ 저장 중 오류가 발생했습니다: ${error.message}`);
+            } finally {
+                isLoading = false;
+                saveButton.disabled = false;
+                saveButton.textContent = originalText;
+                updateSaveButton();
+            }
+        }
+
+        // 아바타 이미지 업로드
+        async function uploadAvatarImage(blob) {
+            const formData = new FormData();
+            formData.append('avatar', blob, 'avatar.png');
+            
+            // 사용자 ID 추출 (JWT 토큰에서 추출하거나 임시로 설정)
+            const userId = extractUserIdFromToken(currentUserToken) || 'temp-user-id';
+            formData.append('userId', userId);
+
+            const response = await fetch('/api/avatars/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentUserToken}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                return data.avatarImgUrl;
+            } else {
+                throw new Error(data.error || '아바타 이미지 업로드 실패');
+            }
+        }
+
+        // 사용자 커스터마이징 데이터 저장
+        async function saveUserCustomization(customizationData) {
+            // 사용자 ID 추출
+            const userId = extractUserIdFromToken(currentUserToken) || 'temp-user-id';
+
+            const response = await fetch(`/api/avatars/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${currentUserToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(customizationData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('Server error response:', data);
+                console.error('Request data:', customizationData);
+                throw new Error(data.error || data.message || '사용자 데이터 저장 실패');
+            }
+
+            return data;
+        }
+
+        // JWT 토큰에서 사용자 ID 추출 (간단한 구현)
+        function extractUserIdFromToken(token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.userId || payload.id || payload.sub;
+            } catch (error) {
+                console.error('토큰 파싱 오류:', error);
+                return null;
+            }
+        }
+
+        // 기존 사용자 데이터 로드
+        async function loadUserCustomization() {
+            if (!currentUserToken) return;
+
+            try {
+                const userId = extractUserIdFromToken(currentUserToken) || 'temp-user-id';
+                
+                const response = await fetch(`/api/avatars/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentUserToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // 기존 데이터로 UI 복원
+                    if (data.avatarSelections) {
+                        avatarSelections = data.avatarSelections;
+                    }
+                    if (data.message) {
+                        userMessage = data.message;
+                        document.getElementById('userMessage').value = data.message;
+                        document.getElementById('messageCount').textContent = data.message.length;
+                    }
+                    if (data.role) {
+                        roleSelection = data.role;
+                    }
+                    if (data.item1) {
+                        itemSelections.item1 = data.item1;
+                    }
+                    if (data.item2) {
+                        itemSelections.item2 = data.item2;
+                    }
+                    if (data.item3) {
+                        itemSelections.item3 = data.item3;
+                    }
+
+                    // UI 업데이트
+                    updateUIFromLoadedData();
+                    console.log('기존 사용자 데이터 로드 완료');
+                } else if (response.status === 404) {
+                    // 404는 정상적인 상황 - 사용자 데이터가 없음
+                    console.log('새로운 사용자 - 기존 데이터 없음');
+                } else {
+                    // 다른 오류들만 로깅
+                    console.warn('데이터 로드 실패:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('사용자 데이터 로드 오류:', error);
+            }
+        }
+
+        // 로드된 데이터로 UI 업데이트
+        function updateUIFromLoadedData() {
+            // 아바타 선택 상태 업데이트
+            for (const [categoryType, optionId] of Object.entries(avatarSelections)) {
+                const option = document.querySelector(`[data-category="${categoryType}"][data-option="${optionId}"]`);
+                if (option) {
+                    option.classList.add('selected');
+                    
+                    const selectionElement = document.getElementById(`selection-${categoryType}`);
+                    if (selectionElement) {
+                        const category = avatarCategories.find(cat => cat.type === categoryType);
+                        const optionData = category?.options?.find(opt => (opt._id || opt.id) === optionId);
+                        if (optionData) {
+                            selectionElement.textContent = optionData.name;
+                            selectionElement.parentElement.parentElement.classList.add('selected');
+                        }
+                    }
+                }
+            }
+
+            // 아이템 슬롯 업데이트
+            if (roleSelection) {
+                const roleItem = findItemById(roleSelection);
+                if (roleItem) {
+                    updateSlotUI('role', roleItem);
+                }
+            }
+
+            for (const [slotType, itemId] of Object.entries(itemSelections)) {
+                if (itemId) {
+                    const item = findItemById(itemId);
+                    if (item) {
+                        updateSlotUI(slotType, item);
+                    }
+                }
+            }
+
+            // 미리보기 업데이트
+            updatePreview();
+            updateSelectedItemsInfo();
+            updateSaveButton();
+        }
+    </script>
+</body>
+
+</html>

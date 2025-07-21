@@ -8,6 +8,13 @@
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "migrate:firebase": "ts-node src/scripts/firebase-migration.ts",
+    "create:admin": "ts-node src/scripts/create-admin.ts",
+    "update:admin": "ts-node src/scripts/update-admin-permissions.ts",
+    "ssl:generate": "node scripts/generate-ssl-cert.js",
+    "ssl:fix": "node scripts/generate-ssl-cert-fixed.js",
+    "ssl:mkcert": "node scripts/setup-mkcert.js",
+    "https": "ENABLE_HTTPS=true npm run dev",
+    "http-only": "ENABLE_HTTPS=false npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.4",
     "multer": "^2.0.1",
+    "sharp": "^0.34.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },

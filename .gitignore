@@ -10,6 +10,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+hninepeople-firebase-adminsdk-fbsvc-cf8551df6d.json
 
 # Build output
 dist/

@@ -17,4 +17,12 @@ export const getFirestore = (): admin.firestore.Firestore => {
   return admin.firestore();
 };
 
+export const verifyIdToken = async (idToken: string): Promise<admin.auth.DecodedIdToken> => {
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    throw new Error(`Failed to verify Firebase ID token: ${error}`);
+  }
+};
+
 export { admin };

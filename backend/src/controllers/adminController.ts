@@ -9,11 +9,11 @@ interface AuthRequest extends Request {
 export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user || !req.user.isAdmin) {
-      res.status(403).json({ error: 'Admin access required' });
+      res.status(403).json({ message: 'Admin access required' });
       return;
     }
     
-    const { page = 1, limit = 20, search, role, isActive } = req.query;
+    const { page = 1, limit = 20, search, role, isActive, isAdmin } = req.query;
     
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -37,6 +37,10 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
     if (isActive !== undefined) {
       query.isNamecardActive = isActive === 'true';
     }
+
+    if (isAdmin !== undefined) {
+      query.isAdmin = isAdmin === 'true';
+    }
     
     const [users, total] = await Promise.all([
       User.find(query)
@@ -48,6 +52,9 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
     
     res.json({
       users,
+      total,
+      currentPage: pageNum,
+      totalPages: Math.ceil(total / limitNum),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -57,25 +64,25 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
     });
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const updateUserPermissions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user || !req.user.isAdmin) {
-      res.status(403).json({ error: 'Admin access required' });
+      res.status(403).json({ message: 'Admin access required' });
       return;
     }
     
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      res.status(400).json({ message: 'Validation error', errors: errors.array() });
       return;
     }
     
     const { id } = req.params;
-    const { isAdmin, isNamecardActive, role } = req.body;
+    const { isAdmin, isNamecardActive, role, nameKr, nameEn, part, phone } = req.body;
     
     const updateData: any = {};
     
@@ -90,6 +97,22 @@ export const updateUserPermissions = async (req: AuthRequest, res: Response): Pr
     if (role !== undefined) {
       updateData.role = role;
     }
+
+    if (nameKr !== undefined) {
+      updateData.nameKr = nameKr;
+    }
+
+    if (nameEn !== undefined) {
+      updateData.nameEn = nameEn;
+    }
+
+    if (part !== undefined) {
+      updateData.part = part;
+    }
+
+    if (phone !== undefined) {
+      updateData.phone = phone;
+    }
     
     const user = await User.findByIdAndUpdate(
       id,
@@ -98,17 +121,17 @@ export const updateUserPermissions = async (req: AuthRequest, res: Response): Pr
     );
     
     if (!user) {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ message: 'User not found' });
       return;
     }
     
-    res.json(user);
+    res.json({ message: 'User updated successfully', user });
   } catch (error) {
     console.error('Error updating user permissions:', error);
     if (error instanceof Error && error.name === 'ValidationError') {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ message: error.message });
     } else {
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 };

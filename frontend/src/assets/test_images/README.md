@@ -1,4 +1,4 @@
-# Assets - Images
+# Assets - Test Images
 
 이 폴더에 명함 앞면에 사용할 이미지를 업로드하세요.
 
@@ -16,5 +16,5 @@
 2. 컴포넌트에서 import하여 사용
 
 ```javascript
-import cardImage from '../assets/images/your-image.png'
+import cardImage from '../assets/test_images/your-image.png'
 ```

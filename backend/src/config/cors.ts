@@ -61,7 +61,12 @@ const allowedOrigins = [
     'null', // file:// 프로토콜용
   ] : []),
   
-  // 프로덕션 도메인 추가
+  // CloudType 배포 도메인들
+  'https://ar-namecard-api.run.goorm.site',
+  /^https:\/\/port-\d+-ar-namecard-api-.*\.cloudtype\.app$/,
+  /^https:\/\/.*\.cloudtype\.app$/,
+  
+  // 추가 프로덕션 도메인들 (필요시)
 ];
 
 export const corsOptions: CorsOptions = {

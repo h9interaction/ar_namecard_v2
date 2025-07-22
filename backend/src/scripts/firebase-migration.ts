@@ -5,13 +5,14 @@ import { ArIdGenerator } from './utils/arId-generator';
 import { DataMapper } from './utils/data-mapper';
 import { User, UserCustomization } from '../models';
 import { FirebaseUser, MigrationResult, MigrationReport } from './types/firebase-user';
+import * as admin from 'firebase-admin';
 
 // 환경 변수 로드
 dotenv.config();
 
 class FirebaseMigration {
   private arIdGenerator: ArIdGenerator;
-  private firestore!: FirebaseFirestore.Firestore;
+  private firestore!: admin.firestore.Firestore;
 
   constructor() {
     this.arIdGenerator = ArIdGenerator.getInstance();
@@ -87,7 +88,7 @@ class FirebaseMigration {
     const snapshot = await this.firestore.collection('people').get();
     const users: FirebaseUser[] = [];
 
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc: admin.firestore.QueryDocumentSnapshot) => {
       const data = doc.data();
       const user = DataMapper.validateFirebaseUser(data);
       

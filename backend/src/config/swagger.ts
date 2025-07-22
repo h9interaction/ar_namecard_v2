@@ -14,8 +14,8 @@ const options = {
 ### 테스트 페이지:
 * [로그인 테스트](/test/login/)
 * [사용자 정보 테스트](/test/user/)
-* [아바타 등록 테스트](/test/avatar/)
-* [아이템 등록 테스트](/test/item/)
+* [캐릭터 옵션 등록 테스트](/test/avatar/)
+* [스티커 옵션 등록 테스트](/test/item/)
 * [커스터마이징 테스트](/test/customize/)
 `,
     },

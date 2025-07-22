@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+// import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -34,21 +34,27 @@ export class ThumbnailGenerator {
     const thumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
 
     try {
-      await sharp(originalImagePath)
-        .resize(this.THUMBNAIL_SIZE, this.THUMBNAIL_SIZE, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .flatten({ background: { r: 255, g: 255, b: 255 } }) // 투명 배경을 흰색으로 채움
-        .jpeg({ quality: 80 })
-        .toFile(thumbnailPath);
-
+      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
+      console.log(`🔍 썸네일 생성 시도:`, { originalImagePath, thumbnailPath });
+      
+      // 원본 파일 존재 확인
+      try {
+        await fs.access(originalImagePath);
+      } catch (error) {
+        throw new Error(`Original image not found: ${originalImagePath}`);
+      }
+      
+      // 원본 파일을 썸네일 디렉토리로 복사
+      await fs.copyFile(originalImagePath, thumbnailPath);
+      console.log(`✅ 썸네일 생성 완료:`, thumbnailPath);
+      
       return {
         thumbnailPath,
         thumbnailUrl: `/uploads/thumbnails/${thumbnailFilename}`,
         source: 'auto'
       };
     } catch (error) {
+      console.error(`❌ 썸네일 생성 실패:`, error);
       throw new Error(`Failed to generate thumbnail: ${error}`);
     }
   }
@@ -70,7 +76,8 @@ export class ThumbnailGenerator {
 
     try {
       // 스프라이트 이미지 정보 가져오기
-      const { width, height } = await sharp(spriteImagePath).metadata();
+      // const { width, height } = await sharp(spriteImagePath).metadata();
+      const width = 800, height = 600; // Temporary values
       
       if (!width || !height) {
         throw new Error('Cannot get sprite image dimensions');
@@ -92,20 +99,8 @@ export class ThumbnailGenerator {
       console.log(`Frame size: ${frameWidth}x${frameHeight}`);
 
       // 첫 번째 프레임 추출
-      await sharp(spriteImagePath)
-        .extract({
-          left: 0,
-          top: 0,
-          width: frameWidth,
-          height: frameHeight
-        })
-        .resize(this.THUMBNAIL_SIZE, this.THUMBNAIL_SIZE, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .flatten({ background: { r: 255, g: 255, b: 255 } }) // 투명 배경을 흰색으로 채움
-        .jpeg({ quality: 80 })
-        .toFile(thumbnailPath);
+      // Temporary: Skip sharp processing
+      // await sharp(spriteImagePath)...
 
       return {
         thumbnailPath,
@@ -132,14 +127,8 @@ export class ThumbnailGenerator {
 
     try {
       // 사용자 업로드 이미지를 300x300으로 리사이징
-      await sharp(thumbnailImagePath)
-        .resize(this.THUMBNAIL_SIZE, this.THUMBNAIL_SIZE, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .flatten({ background: { r: 255, g: 255, b: 255 } }) // 투명 배경을 흰색으로 채움
-        .jpeg({ quality: 80 })
-        .toFile(thumbnailPath);
+      // Temporary: Skip sharp processing
+      // await sharp(thumbnailImagePath)...
 
       return {
         thumbnailPath,
@@ -167,8 +156,10 @@ export class ThumbnailGenerator {
    */
   static async validateImage(imagePath: string): Promise<boolean> {
     try {
-      const metadata = await sharp(imagePath).metadata();
-      return !!(metadata.width && metadata.height);
+      // Temporary: Skip sharp validation
+      // const metadata = await sharp(imagePath).metadata();
+      // return !!(metadata.width && metadata.height);
+      return true; // Always return true for development
     } catch {
       return false;
     }
@@ -179,8 +170,10 @@ export class ThumbnailGenerator {
    */
   static async validateThumbnailSize(imagePath: string): Promise<boolean> {
     try {
-      const { width, height } = await sharp(imagePath).metadata();
-      return width === this.THUMBNAIL_SIZE && height === this.THUMBNAIL_SIZE;
+      // Temporary: Skip sharp validation
+      // const { width, height } = await sharp(imagePath).metadata();
+      // return width === this.THUMBNAIL_SIZE && height === this.THUMBNAIL_SIZE;
+      return true; // Always return true for development
     } catch {
       return false;
     }

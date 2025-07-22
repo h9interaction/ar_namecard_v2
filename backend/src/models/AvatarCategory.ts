@@ -1,12 +1,30 @@
 import { Schema, model, Document } from 'mongoose';
 
+export interface IHairResourceImages {
+  hairMiddleImageUrl: string;  // 중간머리 이미지 URL (필수)
+  hairBackImageUrl?: string;   // 뒷머리 이미지 URL (선택사항)
+}
+
+export interface IColorOption {
+  colorName: string;
+  imageUrl: string;
+  paletteImageUrl?: string;
+  resourceImages?: IHairResourceImages;  // hair 카테고리용 리소스 이미지 객체
+}
+
+export interface IHairParts {
+  middle: string;    // 중간머리 이미지 URL (필수)
+  back?: string;     // 뒷머리 이미지 URL (선택사항)
+}
+
 export interface IAvatarOption {
   name: string;
   imageUrl: string;
   modelUrl?: string;
   thumbnailUrl?: string;
   thumbnailSource?: 'user' | 'auto';
-  color?: string;
+  color?: IColorOption[];
+  hairParts?: IHairParts;  // hair 카테고리 전용 필드
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -45,10 +63,32 @@ const avatarOptionSchema = new Schema<IAvatarOption>({
     enum: ['user', 'auto'],
     default: 'auto'
   },
-  color: {
-    type: String,
-    trim: true
-  },
+  color: [{
+    colorName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    imageUrl: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    paletteImageUrl: {
+      type: String,
+      trim: true
+    },
+    resourceImages: {
+      hairMiddleImageUrl: {
+        type: String,
+        trim: true
+      },
+      hairBackImageUrl: {
+        type: String,
+        trim: true
+      }
+    }
+  }],
   order: {
     type: Number,
     default: 0

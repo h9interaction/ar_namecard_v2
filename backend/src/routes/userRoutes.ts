@@ -6,8 +6,8 @@ import { authenticateToken } from '../middleware/auth';
 /**
  * @swagger
  * tags:
- *   name: Users
- *   description: 사용자 관리 API
+ *   name: Admin - Users
+ *   description: 관리자 사용자 관리 API
  */
 
 const router = Router();
@@ -41,7 +41,7 @@ const userUpdateValidation = [
  * /api/users/{id}:
  *   get:
  *     summary: 사용자 정보 조회
- *     tags: [Users]
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -70,7 +70,7 @@ router.get('/:id', authenticateToken, getUserById);
  * /api/users/{id}:
  *   put:
  *     summary: 사용자 정보 수정
- *     tags: [Users]
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -135,7 +135,7 @@ router.put('/:id', authenticateToken, userUpdateValidation, updateUser);
  * /api/users:
  *   post:
  *     summary: 사용자 생성
- *     tags: [Users]
+ *     tags: [Admin - Users]
  *     requestBody:
  *       required: true
  *       content:

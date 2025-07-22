@@ -8,13 +8,15 @@ interface ThreeJSAnimatedSpriteProps {
   position: [number, number, number];
   scale: [number, number, number];
   animationSpeed?: number; // ms per frame
+  renderOrder?: number;
 }
 
 const ThreeJSAnimatedSprite = ({
   spriteImage,
   position,
   scale,
-  animationSpeed = 250
+  animationSpeed = 250,
+  renderOrder = 1
 }: ThreeJSAnimatedSpriteProps) => {
   const [frames, setFrames] = useState<ExtractedFrame[]>([]);
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
@@ -104,15 +106,16 @@ const ThreeJSAnimatedSprite = ({
     <mesh
       position={position}
       scale={scale}
+      renderOrder={renderOrder}
     >
       <planeGeometry args={[1, 1]} />
       <meshBasicMaterial
         map={currentTexture}
         transparent
         alphaTest={0.1}
-        side={2}
+        side={0}
         toneMapped={false}
-        depthTest={false}
+        depthTest={true}
       />
     </mesh>
   );

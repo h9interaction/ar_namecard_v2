@@ -48,15 +48,15 @@ const AvatarElements = ({ avatarData }: AvatarElementsProps) => {
     >
       {/* 합성된 얼굴 텍스처 렌더링 */}
       {composedFace && (
-        <mesh position={[0, 0, 0]}>
+        <mesh position={[0, 0, 0]} renderOrder={0}>
           <planeGeometry args={[1, 1]} />
           <meshBasicMaterial
             map={composedFace.texture}
             transparent
             alphaTest={0.1}
-            side={2}
+            side={0}
             toneMapped={false}
-            depthTest={false}
+            depthTest={true}
           />
         </mesh>
       )}
@@ -75,6 +75,7 @@ const AvatarElements = ({ avatarData }: AvatarElementsProps) => {
             position={spriteConfig.position}
             scale={[spriteConfig.scale, spriteConfig.scale, 1]}
             animationSpeed={16.67} // 60fps (1000ms / 60 = 16.67ms)
+            renderOrder={Math.round((spriteConfig.position[2] + 1) * 10)} // z-position에 따른 렌더링 순서
           />
         );
       })}

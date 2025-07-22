@@ -9,9 +9,10 @@ import type { AvatarData } from '../types/avatar'
 
 interface RotatingCardProps {
   avatarData: AvatarData | null;
+  onLoadingComplete?: () => void;
 }
 
-const RotatingCard = ({ avatarData }: RotatingCardProps) => {
+const RotatingCard = ({ avatarData, onLoadingComplete }: RotatingCardProps) => {
   const groupRef = useRef<Group>(null!)
   const frontTexture = useLoader(TextureLoader, namecardImage)
   const backTexture = useLoader(TextureLoader, namecardFrontImage)
@@ -34,6 +35,7 @@ const RotatingCard = ({ avatarData }: RotatingCardProps) => {
   }))
   const [isInAutoRotationRange, setIsInAutoRotationRange] = useState<{ x: boolean; y: boolean }>({ x: false, y: false })
   const [autoRotationStarted, setAutoRotationStarted] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const AUTO_ROTATION_RANGE = {
     x: { min: DEFAULT_ROTATION.x - Math.PI / 9, max: DEFAULT_ROTATION.x + Math.PI / 9 }, // ±20도
@@ -50,7 +52,6 @@ const RotatingCard = ({ avatarData }: RotatingCardProps) => {
   // 마우스 이벤트 감지
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
-      console.log('마우스 다운 - 드래그 시작')
       setIsDragging(true)
       setDragStart({ x: event.clientX, y: event.clientY })
       setRotationStart({
@@ -74,7 +75,6 @@ const RotatingCard = ({ avatarData }: RotatingCardProps) => {
 
     const handleMouseUp = () => {
       if (isDragging) {
-        console.log('마우스 업 - 1초 후 디폴트로 근접 시작')
         setIsDragging(false)
         setDragStart(null)
         setRotationStart(null)
@@ -229,12 +229,15 @@ const RotatingCard = ({ avatarData }: RotatingCardProps) => {
 
   // 아바타 데이터가 로드되지 않았으면 기본 카드만 표시
   if (!avatarData) {
-    // 기본 카드에도 초기 로테이션 적용
+    // 기본 카드에도 초기 로테이션 적용 (한 번만)
     useEffect(() => {
-      if (groupRef.current) {
+      if (groupRef.current && !isInitialized) {
         groupRef.current.rotation.x = DEFAULT_ROTATION.x
         groupRef.current.rotation.y = DEFAULT_ROTATION.y
         groupRef.current.rotation.z = DEFAULT_ROTATION.z
+        setIsInitialized(true)
+        
+        // 기본 카드는 로딩이 없으므로 콜백 호출하지 않음
       }
     }, [])
 
@@ -258,14 +261,16 @@ const RotatingCard = ({ avatarData }: RotatingCardProps) => {
     )
   }
 
-  // 초기 로테이션 설정
+  // 초기 로테이션 설정 (한 번만)
   useEffect(() => {
-    if (groupRef.current) {
+    if (groupRef.current && !isInitialized) {
       groupRef.current.rotation.x = DEFAULT_ROTATION.x
       groupRef.current.rotation.y = DEFAULT_ROTATION.y
       groupRef.current.rotation.z = DEFAULT_ROTATION.z
+      setIsInitialized(true)
     }
   }, [])
+
 
   return (
     <group ref={groupRef} position={[0, -0.5, 0]}>
@@ -286,7 +291,7 @@ const RotatingCard = ({ avatarData }: RotatingCardProps) => {
         </mesh>
 
         {/* 아바타 요소들 */}
-        <AvatarElements avatarData={avatarData} />
+        <AvatarElements avatarData={avatarData} onLoadingComplete={onLoadingComplete} />
       </group>
     </group>
   )

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>아이템 관리 테스트 - AR 명함</title>
+    <title>스티커 관리 테스트 - AR 명함</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -429,12 +429,12 @@
 
 <body>
     <div class="container">
-        <h1>🎮 아이템 관리 테스트 페이지</h1>
+        <h1>🎮 스티커 관리 테스트 페이지</h1>
 
         <!-- 인증 섹션 -->
         <div class="section auth-section">
             <h3>🔐 관리자 인증</h3>
-            <p>아이템 관리 기능을 사용하려면 관리자 권한이 필요합니다.</p>
+            <p>스티커 관리 기능을 사용하려면 관리자 권한이 필요합니다.</p>
             <div class="controls">
                 <input type="text" id="adminToken" placeholder="관리자 JWT 토큰 입력" style="width: 400px;">
                 <button onclick="setAuthToken()">토큰 설정</button>
@@ -446,7 +446,7 @@
 
         <!-- 카테고리 관리 섹션 -->
         <div class="section">
-            <h3>📁 아이템 카테고리 관리</h3>
+            <h3>📁 스티커 카테고리 관리</h3>
             <div class="controls">
                 <button onclick="openCreateCategoryModal()" class="btn-success">새 카테고리 추가</button>
                 <button onclick="loadCategories()" class="btn-secondary">새로고침</button>
@@ -489,20 +489,20 @@
         </div>
     </div>
 
-    <!-- 아이템 생성/수정 모달 -->
+    <!-- 스티커 생성/수정 모달 -->
     <div id="itemModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeItemModal()">&times;</span>
-            <h3 id="itemModalTitle">🎮 새 아이템 추가</h3>
+            <h3 id="itemModalTitle">🎮 새 스티커 추가</h3>
             <form id="itemForm" enctype="multipart/form-data">
                 <input type="hidden" id="itemCategoryId">
                 <input type="hidden" id="itemId">
                 
-                <!-- 단일 아이템 추가 모드 -->
+                <!-- 단일 스티커 추가 모드 -->
                 <div id="singleItemMode">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="itemName">아이템 이름 *</label>
+                            <label for="itemName">스티커 이름 *</label>
                             <input type="text" id="itemName" required placeholder="예: 달리기, 커피, 햄버거">
                         </div>
                         
@@ -513,7 +513,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="itemImage">아이템 이미지 * (스프라이트 시퀀스 또는 단일 이미지)</label>
+                        <label for="itemImage">스티커 이미지 * (스프라이트 시퀀스 또는 단일 이미지)</label>
                         <input type="file" id="itemImage" accept="image/*">
                         <div id="imagePreview"></div>
                     </div>
@@ -559,7 +559,7 @@
                     </div>
                 </div>
 
-                <!-- 다중 아이템 추가 모드 -->
+                <!-- 다중 스티커 추가 모드 -->
                 <div id="multiItemMode" style="display: none;">
                     <div class="form-group">
                         <label>이미지 파일 선택 (여러 개 선택 가능)</label>
@@ -713,7 +713,7 @@
             try {
                 showStatus('categoryStatus', 'loading', '카테고리 목록을 불러오는 중...');
 
-                const response = await fetch('/api/admin/items/categories', {
+                const response = await fetch('/api/admin/stickers/categories', {
                     headers: {
                         'Authorization': `Bearer ${currentToken}`,
                         'Content-Type': 'application/json'
@@ -760,13 +760,13 @@
                     <div class="category-header" onclick="toggleCategory(this)">
                         <div class="category-title">${category.name} (${category.type})</div>
                         <div>
-                            <button onclick="event.stopPropagation(); openCreateItemModal('${categoryId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">아이템 추가</button>
+                            <button onclick="event.stopPropagation(); openCreateItemModal('${categoryId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">스티커 추가</button>
                             <button onclick="event.stopPropagation(); editCategory('${categoryId}')" class="btn-warning" style="padding: 5px 10px; font-size: 12px;">수정</button>
                             <button onclick="event.stopPropagation(); deleteCategory('${categoryId}')" class="btn-danger" style="padding: 5px 10px; font-size: 12px;">삭제</button>
                         </div>
                     </div>
                     <div class="category-items">
-                        <p><strong>아이템 수:</strong> ${category.items ? category.items.length : 0}개</p>
+                        <p><strong>스티커 수:</strong> ${category.items ? category.items.length : 0}개</p>
                         <div class="items-grid" id="items-${categoryId}">
                             ${renderItems(category.items || [], categoryId)}
                         </div>
@@ -790,10 +790,10 @@
             }
         }
 
-        // 아이템 렌더링
+        // 스티커 렌더링
         function renderItems(items, categoryId) {
             if (!items || items.length === 0) {
-                return '<p>등록된 아이템이 없습니다.</p>';
+                return '<p>등록된 스티커이 없습니다.</p>';
             }
 
             return items.map(item => {
@@ -898,10 +898,10 @@
             }
         }
 
-        // 특정 카테고리의 아이템만 업데이트
+        // 특정 카테고리의 스티커만 업데이트
         async function updateCategoryItems(categoryId) {
             try {
-                const response = await fetch(`/api/admin/items/categories/${categoryId}`, {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}`, {
                     headers: {
                         'Authorization': `Bearer ${currentToken}`,
                         'Content-Type': 'application/json'
@@ -917,7 +917,7 @@
                         // API 응답이 직접 카테고리 객체를 반환하므로 data를 사용
                         categories[categoryIndex] = data;
                         
-                        // 해당 카테고리의 아이템 그리드만 업데이트
+                        // 해당 카테고리의 스티커 그리드만 업데이트
                         const itemsGrid = document.getElementById(`items-${categoryId}`);
                         if (itemsGrid) {
                             itemsGrid.innerHTML = renderItems(data.items || [], categoryId);
@@ -1032,7 +1032,7 @@
             renderFileItems();
         }
 
-        // 파일 아이템 렌더링
+        // 파일 스티커 렌더링
         function renderFileItems() {
             const container = document.getElementById('fileItemsContainer');
             container.innerHTML = '';
@@ -1044,7 +1044,7 @@
                     <img src="${URL.createObjectURL(fileData.file)}" alt="미리보기" class="file-preview">
                     <div class="file-info">
                         <div class="form-group">
-                            <label>아이템 이름</label>
+                            <label>스티커 이름</label>
                             <input type="text" value="${fileData.name}" onchange="updateFileName(${fileData.id}, this.value)">
                         </div>
                         <div class="form-row">
@@ -1187,9 +1187,9 @@
             modal.style.display = 'none';
         }
 
-        // 아이템 생성 모달 열기
+        // 스티커 생성 모달 열기
         function openCreateItemModal(categoryId) {
-            document.getElementById('itemModalTitle').textContent = '🎮 새 아이템 추가';
+            document.getElementById('itemModalTitle').textContent = '🎮 새 스티커 추가';
             document.getElementById('itemForm').reset();
             document.getElementById('itemCategoryId').value = categoryId;
             document.getElementById('itemId').value = '';
@@ -1217,22 +1217,22 @@
             modal.style.display = 'block';
         }
 
-        // 아이템 수정 모달 열기
+        // 스티커 수정 모달 열기
         function openEditItemModal(categoryId, itemId, itemName) {
-            // 아이템 정보를 찾기 위해 카테고리에서 아이템 찾기
+            // 스티커 정보를 찾기 위해 카테고리에서 스티커 찾기
             const category = categories.find(c => (c._id || c.id) === categoryId);
             if (!category || !category.items) {
-                alert('카테고리 또는 아이템을 찾을 수 없습니다.');
+                alert('카테고리 또는 스티커을 찾을 수 없습니다.');
                 return;
             }
 
             const item = category.items.find(itm => (itm._id || itm.id) === itemId);
             if (!item) {
-                alert('아이템을 찾을 수 없습니다.');
+                alert('스티커을 찾을 수 없습니다.');
                 return;
             }
 
-            document.getElementById('itemModalTitle').textContent = `🎮 아이템 수정: ${itemName}`;
+            document.getElementById('itemModalTitle').textContent = `🎮 스티커 수정: ${itemName}`;
             document.getElementById('itemCategoryId').value = categoryId;
             document.getElementById('itemId').value = itemId;
             document.getElementById('itemName').value = item.name;
@@ -1286,7 +1286,7 @@
             modal.style.display = 'block';
         }
 
-        // 아이템 모달 닫기
+        // 스티커 모달 닫기
         function closeItemModal() {
             const modal = document.getElementById('itemModal');
             modal.classList.remove('show');
@@ -1358,8 +1358,8 @@
 
             try {
                 const url = isEdit ? 
-                    `/api/admin/items/categories/${categoryId}` : 
-                    '/api/admin/items/categories';
+                    `/api/admin/stickers/categories/${categoryId}` : 
+                    '/api/admin/stickers/categories';
                 
                 const response = await fetch(url, {
                     method: isEdit ? 'PUT' : 'POST',
@@ -1386,7 +1386,7 @@
             }
         });
 
-        // 아이템 폼 제출
+        // 스티커 폼 제출
         document.getElementById('itemForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -1409,7 +1409,7 @@
                 // 파일별 이름 검증
                 for (let fileData of selectedFiles) {
                     if (!fileData.name || fileData.name.trim() === '') {
-                        alert('모든 파일의 아이템 이름을 입력해주세요.');
+                        alert('모든 파일의 스티커 이름을 입력해주세요.');
                         return;
                     }
                 }
@@ -1421,12 +1421,12 @@
                 const imageFile = document.getElementById('itemImage').files[0];
                 
                 if (!itemName || itemName.trim() === '') {
-                    alert('아이템 이름을 입력해주세요.');
+                    alert('스티커 이름을 입력해주세요.');
                     return;
                 }
                 
                 if (!isEdit && !imageFile) {
-                    alert('새 아이템을 추가할 때는 이미지가 필요합니다.');
+                    alert('새 스티커을 추가할 때는 이미지가 필요합니다.');
                     return;
                 }
                 
@@ -1455,7 +1455,7 @@
             const thumbnailFile = document.getElementById('itemThumbnail').files[0];
 
             if (!isEdit && !imageFile) {
-                alert('새 아이템을 추가할 때는 이미지가 필요합니다.');
+                alert('새 스티커을 추가할 때는 이미지가 필요합니다.');
                 return;
             }
 
@@ -1469,8 +1469,8 @@
 
             try {
                 const url = isEdit ? 
-                    `/api/admin/items/categories/${categoryId}/items/${itemId}` : 
-                    `/api/admin/items/categories/${categoryId}/items`;
+                    `/api/admin/stickers/categories/${categoryId}/items/${itemId}` : 
+                    `/api/admin/stickers/categories/${categoryId}/items`;
                 
                 const response = await fetch(url, {
                     method: isEdit ? 'PUT' : 'POST',
@@ -1483,7 +1483,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert(`✅ 아이템이 성공적으로 ${isEdit ? '수정' : '추가'}되었습니다.`);
+                    alert(`✅ 스티커이 성공적으로 ${isEdit ? '수정' : '추가'}되었습니다.`);
                     closeItemModal();
                     // 전체 새로고침 대신 해당 카테고리만 업데이트
                     await updateCategoryItems(categoryId);
@@ -1492,7 +1492,7 @@
                 }
 
             } catch (error) {
-                console.error('아이템 저장 오류:', error);
+                console.error('스티커 저장 오류:', error);
                 alert(`❌ 네트워크 오류: ${error.message}`);
             }
         }
@@ -1530,7 +1530,7 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/admin/items/categories/${categoryId}/items`, {
+                    const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${currentToken}`
@@ -1554,7 +1554,7 @@
             progressContainer.style.display = 'none';
             
             if (successCount > 0) {
-                alert(`✅ ${successCount}개의 아이템이 성공적으로 추가되었습니다.${failCount > 0 ? ` (실패: ${failCount}개)` : ''}`);
+                alert(`✅ ${successCount}개의 스티커이 성공적으로 추가되었습니다.${failCount > 0 ? ` (실패: ${failCount}개)` : ''}`);
                 closeItemModal();
                 // 전체 새로고침 대신 해당 카테고리만 업데이트
                 await updateCategoryItems(categoryId);
@@ -1594,12 +1594,12 @@
         async function deleteCategory(categoryId) {
             console.log('deleteCategory called with categoryId:', categoryId);
             
-            if (!confirm('정말로 이 카테고리를 삭제하시겠습니까? 모든 아이템도 함께 삭제됩니다.')) {
+            if (!confirm('정말로 이 카테고리를 삭제하시겠습니까? 모든 스티커도 함께 삭제됩니다.')) {
                 return;
             }
 
             try {
-                const response = await fetch(`/api/admin/items/categories/${categoryId}`, {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${currentToken}`
@@ -1621,14 +1621,14 @@
             }
         }
 
-        // 아이템 삭제
+        // 스티커 삭제
         async function deleteItem(categoryId, itemId) {
-            if (!confirm('정말로 이 아이템을 삭제하시겠습니까?')) {
+            if (!confirm('정말로 이 스티커을 삭제하시겠습니까?')) {
                 return;
             }
 
             try {
-                const response = await fetch(`/api/admin/items/categories/${categoryId}/items/${itemId}`, {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items/${itemId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${currentToken}`
@@ -1638,7 +1638,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert('✅ 아이템이 성공적으로 삭제되었습니다.');
+                    alert('✅ 스티커이 성공적으로 삭제되었습니다.');
                     // 전체 새로고침 대신 해당 카테고리만 업데이트
                     await updateCategoryItems(categoryId);
                 } else {
@@ -1646,19 +1646,19 @@
                 }
 
             } catch (error) {
-                console.error('아이템 삭제 오류:', error);
+                console.error('스티커 삭제 오류:', error);
                 alert(`❌ 네트워크 오류: ${error.message}`);
             }
         }
 
         // 썸네일 재생성
         async function regenerateThumbnail(categoryId, itemId) {
-            if (!confirm('이 아이템의 썸네일을 재생성하시겠습니까?')) {
+            if (!confirm('이 스티커의 썸네일을 재생성하시겠습니까?')) {
                 return;
             }
 
             try {
-                const response = await fetch(`/api/admin/items/categories/${categoryId}/items/${itemId}/regenerate-thumbnail`, {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items/${itemId}/regenerate-thumbnail`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${currentToken}`

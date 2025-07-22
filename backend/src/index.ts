@@ -12,6 +12,7 @@ import os from 'os';
 import userRoutes from './routes/userRoutes';
 import avatarRoutes from './routes/avatarRoutes';
 import itemRoutes from './routes/itemRoutes';
+import charactersRoutes from './routes/charactersRoutes';
 import adminRoutes from './routes/adminRoutes';
 import adminAvatarRoutes from './routes/adminAvatarRoutes';
 import adminItemRoutes from './routes/adminItemRoutes';
@@ -45,14 +46,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 app.use('/uploads/thumbnails', express.static('uploads/thumbnails'));
+app.use('/uploads/palettes', express.static('uploads/palettes'));
 
 // 정적 파일 서빙 (테스트 페이지용)
 app.use('/public', express.static('public'));
 
 // 테스트 페이지 직접 접근 라우트
 app.get('/test/avatar', (_req, res) => {
-  res.sendFile(path.join(__dirname, '../public/test/avatar.html'));
+  res.sendFile(path.join(__dirname, '../public/test/avatar_new.html'));
 });
+
 
 app.get('/test/item', (_req, res) => {
   res.sendFile(path.join(__dirname, '../public/test/item.html'));
@@ -86,14 +89,28 @@ app.get('/api/health', (_req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
 });
 
+// 단순 이미지 업로드 엔드포인트 (프론트엔드 호환성을 위해)
+import { upload } from './middleware/upload';
+app.post('/api/upload', upload.single('file'), (req, res): void => {
+  if (!req.file) {
+    res.status(400).json({ message: 'No file uploaded' });
+    return;
+  }
+  res.json({ 
+    url: `/${req.file.path.replace(/\\/g, '/')}`,
+    filename: req.file.filename 
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/firebase', firebaseAuthRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/avatars', avatarRoutes);
-app.use('/api/items', itemRoutes);
+app.use('/api/stickers', itemRoutes);
+app.use('/api/characters', charactersRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/admin/avatars', adminAvatarRoutes);
-app.use('/api/admin/items', adminItemRoutes);
+app.use('/api/admin/characters', adminAvatarRoutes);
+app.use('/api/admin/stickers', adminItemRoutes);
 
 // Health 체크 엔드포인트
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UserCustomization } from '../models';
+import { UserCustomization, AvatarCategory } from '../models';
 import { validationResult } from 'express-validator';
 
 export const getAvatarByUserId = async (req: Request, res: Response): Promise<void> => {
@@ -39,11 +39,30 @@ export const getAvatarByUserId = async (req: Request, res: Response): Promise<vo
         if (category) {
           const option = category.options.find((opt: any) => opt._id.toString() === optionId);
           if (option) {
+            // 기존 데이터 호환성을 위한 마이그레이션 로직
+            let colorOptions = option.color;
+            
+            // 기존 구조(단일 color string)를 새 구조로 변환
+            if (typeof option.color === 'string' && option.imageUrl) {
+              colorOptions = [{
+                colorName: option.color === '#000000' ? 'Black' : option.color === '#ffffff' ? 'White' : option.color,
+                imageUrl: option.imageUrl
+              }];
+            }
+            // color가 배열이 아니고 imageUrl이 있는 경우 (null, undefined 등)
+            else if (!Array.isArray(option.color) && option.imageUrl) {
+              colorOptions = [{
+                colorName: 'Default',
+                imageUrl: option.imageUrl
+              }];
+            }
+            
             avatarSelectionsWithDetails[categoryType] = {
               id: optionId,
               name: option.name,
               imageUrl: option.imageUrl,
-              thumbnailUrl: option.thumbnailUrl
+              thumbnailUrl: option.thumbnailUrl,
+              color: colorOptions
             };
           }
         }
@@ -194,6 +213,47 @@ export const uploadAvatarImage = async (req: Request, res: Response): Promise<vo
     });
   } catch (error) {
     console.error('Error uploading avatar image:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// 일반 사용자용 아바타 카테고리 조회 (마이그레이션 로직 포함)
+export const getAvatarCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { type } = req.query;
+    const query = type ? { type } : {};
+
+    const categories = await AvatarCategory.find(query).sort({ order: 1 });
+    
+    // 기존 데이터 호환성을 위한 마이그레이션 로직 적용
+    const migratedCategories = categories.map(category => {
+      const categoryObj = category.toObject();
+      if (categoryObj.options) {
+        categoryObj.options = categoryObj.options.map((option: any) => {
+          // 기존 구조(단일 color string)를 새 구조로 변환
+          if (typeof option.color === 'string' && option.imageUrl) {
+            option.color = [{
+              colorName: option.color === '#000000' ? 'Black' : option.color === '#ffffff' ? 'White' : option.color,
+              imageUrl: option.imageUrl
+            }];
+          }
+          // color가 배열이 아니고 imageUrl이 있는 경우 (null, undefined 등)
+          else if (!Array.isArray(option.color) && option.imageUrl) {
+            option.color = [{
+              colorName: 'Default',
+              imageUrl: option.imageUrl
+            }];
+          }
+          
+          return option;
+        });
+      }
+      return categoryObj;
+    });
+    
+    res.json({ categories: migratedCategories, total: migratedCategories.length });
+  } catch (error) {
+    console.error('Error fetching avatar categories:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

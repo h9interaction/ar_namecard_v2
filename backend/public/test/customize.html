@@ -814,14 +814,20 @@
             }
 
             try {
+                console.log('🔍 데이터 로드 시작');
+                
                 // 1. 아바타 및 아이템 카테고리 로드
+                console.log('🔍 카테고리 데이터 로드 시작');
                 await Promise.all([
                     loadAvatarCategories(),
                     loadItemCategories()
                 ]);
+                console.log('✅ 카테고리 데이터 로드 완료');
 
                 // 2. 기존 사용자 데이터 로드 (카테고리 로드 완료 후)
+                console.log('🔍 사용자 데이터 로드 시작');
                 await loadUserCustomization();
+                console.log('✅ 모든 데이터 로드 완료');
             } catch (error) {
                 console.error('데이터 로드 오류:', error);
             }
@@ -894,7 +900,7 @@
             showStatus('avatarStatus', 'loading', '아바타 카테고리를 불러오는 중...');
             
             try {
-                const response = await fetch('/api/admin/avatars/categories', {
+                const response = await fetch('/api/admin/characters/categories', {
                     headers: {
                         'Authorization': `Bearer ${currentUserToken}`,
                         'Content-Type': 'application/json'
@@ -979,7 +985,7 @@
             showStatus('roleStatus', 'loading', '역할 아이템을 불러오는 중...');
             
             try {
-                const response = await fetch('/api/admin/items/categories', {
+                const response = await fetch('/api/admin/stickers/categories', {
                     headers: {
                         'Authorization': `Bearer ${currentUserToken}`,
                         'Content-Type': 'application/json'
@@ -1605,32 +1611,57 @@
 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('🔍 로드된 사용자 데이터:', data);
                     
-                    // 기존 데이터로 UI 복원
+                    // 아바타 선택 데이터 변환
                     if (data.avatarSelections) {
-                        avatarSelections = data.avatarSelections;
+                        avatarSelections = {};
+                        for (const [categoryType, selectionData] of Object.entries(data.avatarSelections)) {
+                            if (typeof selectionData === 'object' && selectionData.id) {
+                                // 객체 형태인 경우 ID만 추출
+                                avatarSelections[categoryType] = selectionData.id;
+                            } else if (typeof selectionData === 'string') {
+                                // 이미 ID 문자열인 경우 그대로 사용
+                                avatarSelections[categoryType] = selectionData;
+                            }
+                        }
+                        console.log('🔍 변환된 avatarSelections:', avatarSelections);
                     }
+                    
+                    // 메시지 데이터
                     if (data.message) {
                         userMessage = data.message;
                         document.getElementById('userMessage').value = data.message;
                         document.getElementById('messageCount').textContent = data.message.length;
                     }
+                    
+                    // 역할 데이터 변환
                     if (data.role) {
-                        roleSelection = data.role;
+                        if (typeof data.role === 'object' && data.role.id) {
+                            roleSelection = data.role.id;
+                        } else if (typeof data.role === 'string') {
+                            roleSelection = data.role;
+                        }
+                        console.log('🔍 변환된 roleSelection:', roleSelection);
                     }
-                    if (data.item1) {
-                        itemSelections.item1 = data.item1;
+                    
+                    // 아이템 데이터 변환
+                    for (let i = 1; i <= 3; i++) {
+                        const itemKey = `item${i}`;
+                        const itemData = data[itemKey];
+                        if (itemData) {
+                            if (typeof itemData === 'object' && itemData.id) {
+                                itemSelections[itemKey] = itemData.id;
+                            } else if (typeof itemData === 'string') {
+                                itemSelections[itemKey] = itemData;
+                            }
+                        }
                     }
-                    if (data.item2) {
-                        itemSelections.item2 = data.item2;
-                    }
-                    if (data.item3) {
-                        itemSelections.item3 = data.item3;
-                    }
+                    console.log('🔍 변환된 itemSelections:', itemSelections);
 
                     // UI 업데이트
                     updateUIFromLoadedData();
-                    console.log('기존 사용자 데이터 로드 완료');
+                    console.log('✅ 기존 사용자 데이터 로드 및 UI 업데이트 완료');
                 } else if (response.status === 404) {
                     // 404는 정상적인 상황 - 사용자 데이터가 없음
                     console.log('새로운 사용자 - 기존 데이터 없음');
@@ -1645,11 +1676,15 @@
 
         // 로드된 데이터로 UI 업데이트
         function updateUIFromLoadedData() {
+            console.log('🔍 updateUIFromLoadedData 시작');
+            
             // 아바타 선택 상태 업데이트
             for (const [categoryType, optionId] of Object.entries(avatarSelections)) {
+                console.log(`🔍 아바타 선택 업데이트: ${categoryType} = ${optionId}`);
                 const option = document.querySelector(`[data-category="${categoryType}"][data-option="${optionId}"]`);
                 if (option) {
                     option.classList.add('selected');
+                    console.log(`✅ 아바타 선택 UI 업데이트 성공: ${categoryType}`);
                     
                     const selectionElement = document.getElementById(`selection-${categoryType}`);
                     if (selectionElement) {
@@ -1660,22 +1695,32 @@
                             selectionElement.parentElement.parentElement.classList.add('selected');
                         }
                     }
+                } else {
+                    console.warn(`❌ 아바타 선택 요소를 찾을 수 없음: ${categoryType} = ${optionId}`);
                 }
             }
 
             // 아이템 슬롯 업데이트
             if (roleSelection) {
+                console.log(`🔍 역할 아이템 업데이트: ${roleSelection}`);
                 const roleItem = findItemById(roleSelection);
                 if (roleItem) {
                     updateSlotUI('role', roleItem);
+                    console.log(`✅ 역할 아이템 UI 업데이트 성공`);
+                } else {
+                    console.warn(`❌ 역할 아이템을 찾을 수 없음: ${roleSelection}`);
                 }
             }
 
             for (const [slotType, itemId] of Object.entries(itemSelections)) {
                 if (itemId) {
+                    console.log(`🔍 일반 아이템 업데이트: ${slotType} = ${itemId}`);
                     const item = findItemById(itemId);
                     if (item) {
                         updateSlotUI(slotType, item);
+                        console.log(`✅ 일반 아이템 UI 업데이트 성공: ${slotType}`);
+                    } else {
+                        console.warn(`❌ 일반 아이템을 찾을 수 없음: ${slotType} = ${itemId}`);
                     }
                 }
             }
@@ -1684,6 +1729,7 @@
             updatePreview();
             updateSelectedItemsInfo();
             updateSaveButton();
+            console.log('✅ updateUIFromLoadedData 완료');
         }
     </script>
 </body>

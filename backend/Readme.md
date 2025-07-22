@@ -183,15 +183,20 @@ DELETE /api/admin/avatars/categories/:id   # 카테고리 삭제
 POST   /api/admin/avatars/options          # 옵션 생성 (다중 업로드 지원)
 ```
 
-### 아이템 관리 (Items)
+### 스티커 관리 (Stickers)
 ```http
-GET    /api/items                     # 아이템 목록 조회
-GET    /api/items/categories          # 아이템 카테고리 목록
-GET    /api/items/categories/:id      # 카테고리별 아이템 목록
+GET    /api/stickers                  # 스티커 목록 조회
+GET    /api/stickers/:id              # 스티커 상세 조회
 
 # 관리자 전용
-POST   /api/admin/items/categories    # 카테고리 생성
-POST   /api/admin/items              # 아이템 생성 (스프라이트 지원)
+POST   /api/admin/stickers/categories # 카테고리 생성
+POST   /api/admin/stickers           # 스티커 생성 (스프라이트 지원)
+```
+
+### 캐릭터 관리 (Characters)
+```http
+GET    /api/characters                # 캐릭터 카테고리 목록
+GET    /api/characters/:id            # 캐릭터 카테고리 상세 조회
 ```
 
 ### 관리자 기능 (Admin)

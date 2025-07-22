@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: ar-namecard-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: hnine0426
+      MONGO_INITDB_DATABASE: ar_namecard
+    volumes:
+      - /volume1/docker/ar-namecard/data/mongodb:/data/db
+    networks:
+      - ar-namecard-network
+    ports:
+      - "127.0.0.1:27017:27017"
+    command: mongod --auth
+
+  # AR Namecard API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ar-namecard-api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HTTPS_PORT: 3443
+      HOST: 0.0.0.0
+      ENABLE_HTTPS: false
+      MONGODB_URI: mongodb://admin:hnine0426@mongodb:27017/ar_namecard?authSource=admin
+      JWT_SECRET: super-secure-jwt-secret-for-production
+      JWT_EXPIRES_IN: 24h
+      MAX_FILE_SIZE: 10485760
+      UPLOAD_DIR: uploads
+      FRONTEND_URL: http://192.168.1.93:3000
+      CORS_ALLOW_ALL: true
+    volumes:
+      - /volume1/docker/ar-namecard/uploads:/app/uploads
+      - /volume1/docker/ar-namecard/ssl:/app/ssl
+      - /volume1/docker/ar-namecard/public:/app/public
+    networks:
+      - ar-namecard-network
+    ports:
+      - "3000:3000"
+      - "3443:3443"
+
+networks:
+  ar-namecard-network:
+    driver: bridge

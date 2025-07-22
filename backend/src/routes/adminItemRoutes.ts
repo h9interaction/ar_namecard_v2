@@ -17,8 +17,8 @@ import { upload } from '../middleware/upload';
 /**
  * @swagger
  * tags:
- *   name: Admin - Items
- *   description: 관리자 아이템 관리 API
+ *   name: Admin - Stickers
+ *   description: 관리자 스티커 관리 API
  */
 
 const router = Router();
@@ -30,7 +30,7 @@ const categoryValidation = [
   body('order').optional().isInt({ min: 0 }).withMessage('Order must be a non-negative integer')
 ];
 
-// 아이템 관리
+// 스티커 관리
 const itemValidation = [
   body('name').isString().isLength({ min: 1, max: 100 }).withMessage('Name must be 1-100 characters'),
   body('order').optional().isInt({ min: 0 }).withMessage('Order must be a non-negative integer'),
@@ -42,10 +42,10 @@ const itemValidation = [
 
 /**
  * @swagger
- * /api/admin/items/categories:
+ * /api/admin/stickers/categories:
  *   get:
- *     summary: 아이템 카테고리 목록 조회 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 카테고리 목록 조회 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -56,7 +56,7 @@ const itemValidation = [
  *         description: 카테고리 타입 필터
  *     responses:
  *       200:
- *         description: 아이템 카테고리 목록
+ *         description: 스티커 카테고리 목록
  *         content:
  *           application/json:
  *             schema:
@@ -77,10 +77,10 @@ router.get('/categories', authenticateToken, getAllItemCategories);
 
 /**
  * @swagger
- * /api/admin/items/categories/{id}:
+ * /api/admin/stickers/categories/{id}:
  *   get:
- *     summary: 아이템 카테고리 상세 조회 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 카테고리 상세 조회 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -92,7 +92,7 @@ router.get('/categories', authenticateToken, getAllItemCategories);
  *         description: 카테고리 ID
  *     responses:
  *       200:
- *         description: 아이템 카테고리 상세 정보
+ *         description: 스티커 카테고리 상세 정보
  *         content:
  *           application/json:
  *             schema:
@@ -104,10 +104,10 @@ router.get('/categories/:id', authenticateToken, getItemCategoryById);
 
 /**
  * @swagger
- * /api/admin/items/categories:
+ * /api/admin/stickers/categories:
  *   post:
- *     summary: 새 아이템 카테고리 생성 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 새 스티커 카테고리 생성 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -134,7 +134,7 @@ router.get('/categories/:id', authenticateToken, getItemCategoryById);
  *                 example: 1
  *     responses:
  *       201:
- *         description: 아이템 카테고리 생성 성공
+ *         description: 스티커 카테고리 생성 성공
  *       400:
  *         description: 잘못된 요청 또는 중복된 타입
  *       403:
@@ -144,10 +144,10 @@ router.post('/categories', authenticateToken, categoryValidation, createItemCate
 
 /**
  * @swagger
- * /api/admin/items/categories/{id}:
+ * /api/admin/stickers/categories/{id}:
  *   put:
- *     summary: 아이템 카테고리 수정 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 카테고리 수정 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -175,7 +175,7 @@ router.post('/categories', authenticateToken, categoryValidation, createItemCate
  *                 description: 표시 순서
  *     responses:
  *       200:
- *         description: 아이템 카테고리 수정 성공
+ *         description: 스티커 카테고리 수정 성공
  *       404:
  *         description: 카테고리를 찾을 수 없음
  */
@@ -183,10 +183,10 @@ router.put('/categories/:id', authenticateToken, categoryValidation, updateItemC
 
 /**
  * @swagger
- * /api/admin/items/categories/{id}:
+ * /api/admin/stickers/categories/{id}:
  *   delete:
- *     summary: 아이템 카테고리 삭제 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 카테고리 삭제 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -198,7 +198,7 @@ router.put('/categories/:id', authenticateToken, categoryValidation, updateItemC
  *         description: 카테고리 ID
  *     responses:
  *       200:
- *         description: 아이템 카테고리 삭제 성공
+ *         description: 스티커 카테고리 삭제 성공
  *       404:
  *         description: 카테고리를 찾을 수 없음
  */
@@ -206,10 +206,10 @@ router.delete('/categories/:id', authenticateToken, deleteItemCategory);
 
 /**
  * @swagger
- * /api/admin/items/categories/{id}/items:
+ * /api/admin/stickers/categories/{id}/items:
  *   post:
- *     summary: 아이템 추가 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 추가 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -231,7 +231,7 @@ router.delete('/categories/:id', authenticateToken, deleteItemCategory);
  *             properties:
  *               name:
  *                 type: string
- *                 description: 아이템 이름
+ *                 description: 스티커 이름
  *               image:
  *                 type: string
  *                 format: binary
@@ -258,7 +258,7 @@ router.delete('/categories/:id', authenticateToken, deleteItemCategory);
  *                 description: 표시 순서
  *     responses:
  *       201:
- *         description: 아이템 추가 성공
+ *         description: 스티커 추가 성공
  *       400:
  *         description: 잘못된 요청
  *       404:
@@ -276,10 +276,10 @@ router.post('/categories/:id/items',
 
 /**
  * @swagger
- * /api/admin/items/categories/{categoryId}/items/{itemId}:
+ * /api/admin/stickers/categories/{categoryId}/items/{itemId}:
  *   put:
- *     summary: 아이템 수정 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 수정 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -294,7 +294,7 @@ router.post('/categories/:id/items',
  *         required: true
  *         schema:
  *           type: string
- *         description: 아이템 ID
+ *         description: 스티커 ID
  *     requestBody:
  *       required: true
  *       content:
@@ -304,7 +304,7 @@ router.post('/categories/:id/items',
  *             properties:
  *               name:
  *                 type: string
- *                 description: 아이템 이름
+ *                 description: 스티커 이름
  *               image:
  *                 type: string
  *                 format: binary
@@ -330,9 +330,9 @@ router.post('/categories/:id/items',
  *                 description: 표시 순서
  *     responses:
  *       200:
- *         description: 아이템 수정 성공
+ *         description: 스티커 수정 성공
  *       404:
- *         description: 카테고리 또는 아이템을 찾을 수 없음
+ *         description: 카테고리 또는 스티커을 찾을 수 없음
  */
 router.put('/categories/:categoryId/items/:itemId', 
   authenticateToken, 
@@ -345,10 +345,10 @@ router.put('/categories/:categoryId/items/:itemId',
 
 /**
  * @swagger
- * /api/admin/items/categories/{categoryId}/items/{itemId}:
+ * /api/admin/stickers/categories/{categoryId}/items/{itemId}:
  *   delete:
- *     summary: 아이템 삭제 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 삭제 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -363,21 +363,21 @@ router.put('/categories/:categoryId/items/:itemId',
  *         required: true
  *         schema:
  *           type: string
- *         description: 아이템 ID
+ *         description: 스티커 ID
  *     responses:
  *       200:
- *         description: 아이템 삭제 성공
+ *         description: 스티커 삭제 성공
  *       404:
- *         description: 카테고리 또는 아이템을 찾을 수 없음
+ *         description: 카테고리 또는 스티커을 찾을 수 없음
  */
 router.delete('/categories/:categoryId/items/:itemId', authenticateToken, deleteItem);
 
 /**
  * @swagger
- * /api/admin/items/categories/{categoryId}/items/{itemId}/regenerate-thumbnail:
+ * /api/admin/stickers/categories/{categoryId}/items/{itemId}/regenerate-thumbnail:
  *   post:
- *     summary: 아이템 썸네일 재생성 (관리자 전용)
- *     tags: [Admin - Items]
+ *     summary: 스티커 썸네일 재생성 (관리자 전용)
+ *     tags: [Admin - Stickers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -392,7 +392,7 @@ router.delete('/categories/:categoryId/items/:itemId', authenticateToken, delete
  *         required: true
  *         schema:
  *           type: string
- *         description: 아이템 ID
+ *         description: 스티커 ID
  *     responses:
  *       200:
  *         description: 썸네일 재생성 성공
@@ -406,7 +406,7 @@ router.delete('/categories/:categoryId/items/:itemId', authenticateToken, delete
  *                 thumbnailUrl:
  *                   type: string
  *       404:
- *         description: 카테고리 또는 아이템을 찾을 수 없음
+ *         description: 카테고리 또는 스티커을 찾을 수 없음
  */
 router.post('/categories/:categoryId/items/:itemId/regenerate-thumbnail', authenticateToken, regenerateItemThumbnail);
 

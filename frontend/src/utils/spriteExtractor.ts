@@ -32,7 +32,7 @@ export async function analyzeSpriteSheet(imagePath: string): Promise<SpriteSheet
       // 마지막 행의 실제 프레임 수를 계산하기 위해 투명도 검사
       let totalFrames = 0;
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       
       if (!ctx) {
         reject(new Error('Canvas context not available'));
@@ -83,7 +83,6 @@ export async function analyzeSpriteSheet(imagePath: string): Promise<SpriteSheet
         }
       }
       
-      console.log(`🔍 Sprite analysis: ${totalFrames} frames found (${frameWidth}x${frameHeight} each)`);
       
       resolve({
         frameWidth,
@@ -108,7 +107,7 @@ export function extractFrame(
   spriteInfo: SpriteSheetInfo
 ): ExtractedFrame {
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   
   if (!ctx) {
     throw new Error('Canvas context not available');

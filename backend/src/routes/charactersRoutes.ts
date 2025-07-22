@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getItems, getItemById, getAvatarCategories, getAvatarCategoryById } from '../controllers/itemController';
+import { getAvatarCategories, getAvatarCategoryById } from '../controllers/itemController';
 import { authenticateToken } from '../middleware/auth';
 
 /**
@@ -13,9 +13,9 @@ const router = Router();
 
 /**
  * @swagger
- * /api/stickers:
+ * /api/characters:
  *   get:
- *     summary: 스티커 전체 목록 조회
+ *     summary: 캐릭터 요소 전체 목록 조회 (눈, 코, 입, 머리, 눈썹 등)
  *     tags: [Characters And Stickers]
  *     security:
  *       - bearerAuth: []
@@ -24,26 +24,26 @@ const router = Router();
  *         name: type
  *         schema:
  *           type: string
- *         description: 스티커 타입 필터
+ *         description: 카테고리 타입 필터
  *     responses:
  *       200:
- *         description: 스티커 목록
+ *         description: 캐릭터 카테고리 목록
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/ItemCategory'
+ *                 $ref: '#/components/schemas/AvatarCategory'
  *       401:
  *         description: 인증 실패
  */
-router.get('/', authenticateToken, getItems);
+router.get('/', authenticateToken, getAvatarCategories);
 
 /**
  * @swagger
- * /api/stickers/{id}:
+ * /api/characters/{id}:
  *   get:
- *     summary: 스티커 상세 조회
+ *     summary: 캐릭터 요소 상세 조회
  *     tags: [Characters And Stickers]
  *     security:
  *       - bearerAuth: []
@@ -53,19 +53,19 @@ router.get('/', authenticateToken, getItems);
  *         required: true
  *         schema:
  *           type: string
- *         description: 스티커 ID
+ *         description: 캐릭터 카테고리 ID
  *     responses:
  *       200:
- *         description: 스티커 정보
+ *         description: 캐릭터 카테고리 정보
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ItemCategory'
+ *               $ref: '#/components/schemas/AvatarCategory'
  *       401:
  *         description: 인증 실패
  *       404:
- *         description: 스티커를 찾을 수 없음
+ *         description: 캐릭터 카테고리를 찾을 수 없음
  */
-router.get('/:id', authenticateToken, getItemById);
+router.get('/:id', authenticateToken, getAvatarCategoryById);
 
 export default router;

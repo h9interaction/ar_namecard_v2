@@ -17,8 +17,8 @@ import { upload } from '../middleware/upload';
 /**
  * @swagger
  * tags:
- *   name: Admin - Avatars
- *   description: 관리자 아바타 관리 API
+ *   name: Admin - Characters
+ *   description: 관리자 캐릭터 요소 관리 API
  */
 
 const router = Router();
@@ -33,16 +33,16 @@ const categoryValidation = [
 // 옵션 관리
 const optionValidation = [
   body('name').isString().isLength({ min: 1, max: 100 }).withMessage('Name must be 1-100 characters'),
-  body('color').optional().isString().withMessage('Color must be a string'),
+  body('colorOptions').optional().isString().withMessage('Color options must be a JSON string'),
   body('order').optional().isInt({ min: 0 }).withMessage('Order must be a non-negative integer')
 ];
 
 /**
  * @swagger
- * /api/admin/avatars/categories:
+ * /api/admin/characters/categories:
  *   get:
  *     summary: 아바타 카테고리 목록 조회 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -74,10 +74,10 @@ router.get('/categories', authenticateToken, getAllAvatarCategories);
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{id}:
+ * /api/admin/characters/categories/{id}:
  *   get:
  *     summary: 아바타 카테고리 상세 조회 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -101,10 +101,10 @@ router.get('/categories/:id', authenticateToken, getAvatarCategoryById);
 
 /**
  * @swagger
- * /api/admin/avatars/categories:
+ * /api/admin/characters/categories:
  *   post:
  *     summary: 새 아바타 카테고리 생성 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -141,10 +141,10 @@ router.post('/categories', authenticateToken, categoryValidation, createAvatarCa
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{id}:
+ * /api/admin/characters/categories/{id}:
  *   put:
  *     summary: 아바타 카테고리 수정 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -180,10 +180,10 @@ router.put('/categories/:id', authenticateToken, categoryValidation, updateAvata
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{id}:
+ * /api/admin/characters/categories/{id}:
  *   delete:
  *     summary: 아바타 카테고리 삭제 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -203,10 +203,10 @@ router.delete('/categories/:id', authenticateToken, deleteAvatarCategory);
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{id}/options:
+ * /api/admin/characters/categories/{id}/options:
  *   post:
  *     summary: 아바타 옵션 추가 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -224,23 +224,18 @@ router.delete('/categories/:id', authenticateToken, deleteAvatarCategory);
  *             type: object
  *             required:
  *               - name
- *               - image
+ *               - colorOptions
  *             properties:
  *               name:
  *                 type: string
  *                 description: 옵션 이름
- *               image:
+ *               colorOptions:
  *                 type: string
- *                 format: binary
- *                 description: 원본 이미지 파일 (512x512px 권장)
+ *                 description: 색상 옵션 JSON 문자열 (예. [{"colorName":"red","imageUrl":"/uploads/red.jpg"}])
  *               thumbnail:
  *                 type: string
  *                 format: binary
  *                 description: 썸네일 이미지 파일 (100x100px, 선택사항)
- *               color:
- *                 type: string
- *                 description: 색상 정보
- *                 example: "#000000"
  *               order:
  *                 type: integer
  *                 description: 표시 순서
@@ -254,20 +249,17 @@ router.delete('/categories/:id', authenticateToken, deleteAvatarCategory);
  */
 router.post('/categories/:id/options', 
   authenticateToken, 
-  upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
-  ]), 
+  upload.any(), 
   optionValidation, 
   addAvatarOption
 );
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{categoryId}/options/{optionId}:
+ * /api/admin/characters/categories/{categoryId}/options/{optionId}:
  *   put:
  *     summary: 아바타 옵션 수정 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -315,19 +307,16 @@ router.post('/categories/:id/options',
  */
 router.put('/categories/:categoryId/options/:optionId', 
   authenticateToken, 
-  upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
-  ]), 
+  upload.any(), 
   updateAvatarOption
 );
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{categoryId}/options/{optionId}:
+ * /api/admin/characters/categories/{categoryId}/options/{optionId}:
  *   delete:
  *     summary: 아바타 옵션 삭제 (관리자 전용)
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -353,10 +342,10 @@ router.delete('/categories/:categoryId/options/:optionId', authenticateToken, de
 
 /**
  * @swagger
- * /api/admin/avatars/categories/{categoryId}/options/{optionId}/thumbnail/regenerate:
+ * /api/admin/characters/categories/{categoryId}/options/{optionId}/thumbnail/regenerate:
  *   post:
  *     summary: 아바타 옵션 썸네일 재생성
- *     tags: [Admin - Avatars]
+ *     tags: [Admin - Characters]
  *     security:
  *       - bearerAuth: []
  *     parameters:

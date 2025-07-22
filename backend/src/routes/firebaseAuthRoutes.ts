@@ -5,8 +5,8 @@ import { verifyFirebaseToken } from '../controllers/firebaseAuthController';
 /**
  * @swagger
  * tags:
- *   name: Firebase Authentication
- *   description: Firebase 기반 사용자 인증 API
+ *   name: Authentication
+ *   description: 사용자 인증 API
  */
 
 const router = Router();
@@ -24,7 +24,7 @@ const firebaseTokenValidation = [
  * /api/auth/firebase/verify:
  *   post:
  *     summary: Firebase ID 토큰 검증 및 로그인
- *     tags: [Firebase Authentication]
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:

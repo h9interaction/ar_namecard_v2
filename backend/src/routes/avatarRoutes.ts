@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { getAvatarByUserId, updateAvatar, uploadAvatarImage } from '../controllers/avatarController';
+// import { getAvatarCategories } from '../controllers/avatarController'; // Hidden endpoint
 import { authenticateToken } from '../middleware/auth';
 import { uploadSingle } from '../middleware/upload';
 
@@ -12,6 +13,36 @@ import { uploadSingle } from '../middleware/upload';
  */
 
 const router = Router();
+
+// Hidden endpoint - 아바타 카테고리 목록 조회는 Characters API에서 처리
+// /**
+//  * @swagger
+//  * /api/avatars/categories:
+//  *   get:
+//  *     summary: 아바타 카테고리 목록 조회 (일반 사용자용)
+//  *     tags: [Avatars]
+//  *     parameters:
+//  *       - in: query
+//  *         name: type
+//  *         schema:
+//  *           type: string
+//  *         description: 카테고리 타입 필터
+//  *     responses:
+//  *       200:
+//  *         description: 아바타 카테고리 목록
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 categories:
+//  *                   type: array
+//  *                   items:
+//  *                     $ref: '#/components/schemas/AvatarCategory'
+//  *                 total:
+//  *                   type: integer
+//  */
+// router.get('/categories', getAvatarCategories);
 
 const avatarValidation = [
   body('avatarSelections').optional().isObject().withMessage('Avatar selections must be an object'),
@@ -26,7 +57,7 @@ const avatarValidation = [
  * @swagger
  * /api/avatars/{userId}:
  *   get:
- *     summary: 아바타 정보 조회 (사용자 정보 포함)
+ *     summary: 아바타 정보 조회 (사용자 정보 포함 8thwall 용)
  *     tags: [Avatars]
  *     parameters:
  *       - in: path

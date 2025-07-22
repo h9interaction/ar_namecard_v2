@@ -6,8 +6,8 @@ import { authenticateToken } from '../middleware/auth';
 /**
  * @swagger
  * tags:
- *   name: Admin
- *   description: 관리자 기능 API
+ *   name: Admin - Users
+ *   description: 관리자 사용자 관리 API
  */
 
 const router = Router();
@@ -23,7 +23,7 @@ const permissionUpdateValidation = [
  * /api/admin/users:
  *   get:
  *     summary: 전체 사용자 목록 조회 (관리자 전용)
- *     tags: [Admin]
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -89,7 +89,7 @@ router.get('/users', authenticateToken, getAllUsers);
  * /api/admin/users/{id}:
  *   put:
  *     summary: 사용자 권한 관리 (관리자 전용)
- *     tags: [Admin]
+ *     tags: [Admin - Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:

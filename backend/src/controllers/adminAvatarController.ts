@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AvatarCategory } from '../models';
 import { validationResult } from 'express-validator';
 import { ThumbnailGenerator } from '../utils/thumbnailGenerator';
+import { PaletteImageProcessor } from '../utils/paletteImageProcessor';
 import path from 'path';
 import fs from 'fs/promises'; // Added fs import
 
@@ -12,6 +13,8 @@ interface AuthRequest extends Request {
 interface MulterFiles {
   image?: Express.Multer.File[];
   thumbnail?: Express.Multer.File[];
+  palette?: Express.Multer.File[];
+  [key: string]: Express.Multer.File[] | undefined;  // 동적 필드명 지원 (hair_0_middle, hair_1_back 등)
 }
 
 // 파일 삭제 유틸리티 함수
@@ -51,7 +54,72 @@ export const getAllAvatarCategories = async (req: AuthRequest, res: Response): P
     const query = type ? { type } : {};
 
     const categories = await AvatarCategory.find(query).sort({ order: 1 });
-    res.json({ categories, total: categories.length });
+    
+    // 기존 데이터 호환성을 위한 마이그레이션 로직 적용
+    const migratedCategories = categories.map(category => {
+      const categoryObj = category.toObject();
+      if (categoryObj.options) {
+        categoryObj.options = categoryObj.options.map((option: any) => {
+          // 기존 구조(단일 color string)를 새 구조로 변환
+          if (typeof option.color === 'string' && option.imageUrl) {
+            option.color = [{
+              colorName: option.color === '#000000' ? 'Black' : option.color === '#ffffff' ? 'White' : option.color,
+              imageUrl: option.imageUrl
+            }];
+          }
+          // color가 배열이 아니고 imageUrl이 있는 경우 (null, undefined 등)
+          else if (!Array.isArray(option.color) && option.imageUrl) {
+            option.color = [{
+              colorName: 'Default',
+              imageUrl: option.imageUrl
+            }];
+          }
+
+          // 기존 hairParts를 resourceImages로 변환 (hair 카테고리만)
+          if (categoryObj.type === 'hair' && option.hairParts && Array.isArray(option.color)) {
+            option.color = option.color.map((colorOpt: any) => {
+              if (!colorOpt.resourceImages) {
+                // 새로운 객체 구조로 변환
+                const resourceImages: any = {};
+                if (option.hairParts.middle) {
+                  resourceImages.hairMiddleImageUrl = option.hairParts.middle; // 중간머리
+                }
+                if (option.hairParts.back) {
+                  resourceImages.hairBackImageUrl = option.hairParts.back; // 뒷머리
+                }
+                colorOpt.resourceImages = resourceImages;
+              }
+              return colorOpt;
+            });
+            // 변환 후 hairParts 제거
+            delete option.hairParts;
+          }
+          
+          // 기존 배열 구조 resourceImages를 객체 구조로 변환 (hair 카테고리만)
+          if (categoryObj.type === 'hair' && Array.isArray(option.color)) {
+            option.color = option.color.map((colorOpt: any) => {
+              if (colorOpt.resourceImages && Array.isArray(colorOpt.resourceImages)) {
+                // 배열 구조를 객체 구조로 변환
+                const newResourceImages: any = {};
+                if (colorOpt.resourceImages[2]) {
+                  newResourceImages.hairMiddleImageUrl = colorOpt.resourceImages[2]; // 중간머리
+                }
+                if (colorOpt.resourceImages[0]) {
+                  newResourceImages.hairBackImageUrl = colorOpt.resourceImages[0]; // 뒷머리
+                }
+                colorOpt.resourceImages = newResourceImages;
+              }
+              return colorOpt;
+            });
+          }
+          
+          return option;
+        });
+      }
+      return categoryObj;
+    });
+    
+    res.json({ categories: migratedCategories, total: migratedCategories.length });
   } catch (error) {
     console.error('Error fetching avatar categories:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -73,7 +141,30 @@ export const getAvatarCategoryById = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    res.json(category);
+    // 기존 데이터 호환성을 위한 마이그레이션 로직 적용
+    const categoryObj = category.toObject();
+    if (categoryObj.options) {
+      categoryObj.options = categoryObj.options.map((option: any) => {
+        // 기존 구조(단일 color string)를 새 구조로 변환
+        if (typeof option.color === 'string' && option.imageUrl) {
+          option.color = [{
+            colorName: option.color === '#000000' ? 'Black' : option.color === '#ffffff' ? 'White' : option.color,
+            imageUrl: option.imageUrl
+          }];
+        }
+        // color가 배열이 아니고 imageUrl이 있는 경우 (null, undefined 등)
+        else if (!Array.isArray(option.color) && option.imageUrl) {
+          option.color = [{
+            colorName: 'Default',
+            imageUrl: option.imageUrl
+          }];
+        }
+        
+        return option;
+      });
+    }
+
+    res.json(categoryObj);
   } catch (error) {
     console.error('Error fetching avatar category:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -180,7 +271,7 @@ export const deleteAvatarCategory = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    // 카테고리의 모든 옵션 이미지 및 썸네일 삭제
+    // 카테고리의 모든 옵션 이미지, 썸네일 및 팔레트 이미지 삭제
     for (const option of category.options) {
       if (option.imageUrl) {
         const imagePath = getFilePathFromUrl(option.imageUrl);
@@ -189,6 +280,15 @@ export const deleteAvatarCategory = async (req: AuthRequest, res: Response): Pro
       if (option.thumbnailUrl) {
         const thumbnailPath = getThumbnailPathFromUrl(option.thumbnailUrl);
         await deleteFileIfExists(thumbnailPath);
+      }
+      
+      // 팔레트 이미지들 삭제
+      if (option.color && Array.isArray(option.color)) {
+        for (const colorOpt of option.color) {
+          if (colorOpt.paletteImageUrl) {
+            await PaletteImageProcessor.deletePaletteImage(colorOpt.paletteImageUrl);
+          }
+        }
       }
     }
 
@@ -214,11 +314,34 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
     }
 
     const { id } = req.params;
-    const { name, color, order = 0 } = req.body;
-    const files = req.files as MulterFiles;
+    const { name, colorOptions, order = 0 } = req.body;
+    const files = req.files as Express.Multer.File[];
+    
+    console.log(`🔍 addAvatarOption 요청 데이터:`, {
+      name,
+      colorOptionsType: typeof colorOptions,
+      colorOptionsLength: colorOptions?.length,
+      filesCount: files?.length || 0
+    });
+    
+    // colorOptions는 JSON 문자열로 전송될 것임
+    let parsedColorOptions;
+    try {
+      parsedColorOptions = typeof colorOptions === 'string' ? JSON.parse(colorOptions) : colorOptions;
+      console.log(`🔍 파싱된 colorOptions:`, parsedColorOptions);
+    } catch (error) {
+      console.error('❌ colorOptions 파싱 실패:', error);
+      res.status(400).json({ message: 'Invalid colorOptions format' });
+      return;
+    }
 
-    if (!files || !files.image || files.image.length === 0) {
-      res.status(400).json({ message: 'Image file is required' });
+    if (!parsedColorOptions || !Array.isArray(parsedColorOptions) || parsedColorOptions.length === 0) {
+      console.error('❌ colorOptions 검증 실패:', {
+        exists: !!parsedColorOptions,
+        isArray: Array.isArray(parsedColorOptions),
+        length: parsedColorOptions?.length || 0
+      });
+      res.status(400).json({ message: 'At least one color option is required' });
       return;
     }
 
@@ -228,20 +351,115 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    const imageFile = files.image[0];
-    if (!imageFile) {
-      res.status(400).json({ message: 'Image file is required' });
+    // hair 카테고리 감지
+    const isHairCategory = category.type === 'hair';
+
+    // 파일 배열을 객체로 변환 (upload.any() 사용으로 인해)
+    const filesByName: { [key: string]: Express.Multer.File[] } = {};
+    if (Array.isArray(files)) {
+      files.forEach(file => {
+        if (!filesByName[file.fieldname]) {
+          filesByName[file.fieldname] = [];
+        }
+        filesByName[file.fieldname].push(file);
+      });
+    }
+
+    // 디버깅: 받은 파일들 로그
+    console.log('🔍 받은 파일들:', Object.keys(filesByName));
+    if (isHairCategory) {
+      console.log('💇‍♀️ Hair 카테고리 파일들:', Object.keys(filesByName).filter(key => key.startsWith('hair_')));
+    }
+
+    // 팔레트 이미지 및 hair 리소스 이미지 처리
+    const paletteFiles = filesByName.palette || [];
+    const processedColorOptions = await Promise.all(
+      parsedColorOptions.map(async (colorOption: any, index: number) => {
+        let paletteImageUrl = '';
+        let resourceImages: { hairMiddleImageUrl: string; hairBackImageUrl?: string } | undefined;
+        
+        // 해당 인덱스에 팔레트 이미지가 있으면 처리
+        if (paletteFiles[index]) {
+          try {
+            const paletteResult = await PaletteImageProcessor.processPaletteImage(
+              paletteFiles[index].path,
+              paletteFiles[index].filename
+            );
+            paletteImageUrl = paletteResult.paletteImageUrl;
+          } catch (error) {
+            console.error(`Error processing palette image for color option ${index}:`, error);
+          }
+        }
+
+        // hair 카테고리인 경우 리소스 이미지 처리
+        if (isHairCategory) {
+          // hair 검증: 중간머리는 필수
+          const middleHairKey = `hair_${index}_middle`;
+          const backHairKey = `hair_${index}_back`;
+          
+          if (!filesByName[middleHairKey] || filesByName[middleHairKey].length === 0) {
+            throw new Error(`Middle hair image is required for color option ${index + 1}: ${colorOption.colorName}`);
+          }
+
+          try {
+            // 리소스 이미지 객체 초기화
+            resourceImages = {} as { hairMiddleImageUrl: string; hairBackImageUrl?: string };
+            
+            // 중간머리 처리 (필수)
+            const middleHairFile = filesByName[middleHairKey]![0];
+            const middleImagePath = path.join('uploads', `hair_middle_${index}_${Date.now()}_${middleHairFile.originalname}`);
+            await fs.copyFile(middleHairFile.path, middleImagePath);
+            resourceImages.hairMiddleImageUrl = `/${middleImagePath}`;
+
+            // 뒷머리 처리 (선택사항)
+            if (filesByName[backHairKey] && filesByName[backHairKey].length > 0) {
+              const backHairFile = filesByName[backHairKey][0];
+              const backImagePath = path.join('uploads', `hair_back_${index}_${Date.now()}_${backHairFile.originalname}`);
+              await fs.copyFile(backHairFile.path, backImagePath);
+              resourceImages.hairBackImageUrl = `/${backImagePath}`;
+            }
+
+          } catch (error) {
+            console.error(`Error processing hair images for color option ${index}:`, error);
+            throw new Error(`Failed to process hair images for color option: ${colorOption.colorName}`);
+          }
+        }
+
+        // Hair 카테고리에서 imageUrl 결정
+        let finalImageUrl = colorOption.imageUrl;
+        if (isHairCategory) {
+          // 중간머리가 있으면 사용, 없으면 기존 imageUrl 유지
+          finalImageUrl = resourceImages?.hairMiddleImageUrl || colorOption.imageUrl;
+          // Hair 카테고리에서 imageUrl이 여전히 없으면 에러
+          if (!finalImageUrl) {
+            throw new Error(`Hair category requires middle hair image for color option: ${colorOption.colorName}`);
+          }
+        }
+
+        return {
+          colorName: colorOption.colorName,
+          imageUrl: finalImageUrl,
+          paletteImageUrl,
+          ...(isHairCategory && { resourceImages })
+        };
+      })
+    );
+
+    // 첫 번째 컬러 옵션의 이미지를 메인 이미지로 사용
+    const mainImageUrl = processedColorOptions[0]?.imageUrl;
+    console.log(`🔍 메인 이미지 URL (썸네일 생성용):`, mainImageUrl);
+    if (!mainImageUrl) {
+      res.status(400).json({ message: 'First color option must have an imageUrl' });
       return;
     }
-    const imageUrl = `/uploads/${imageFile.filename}`;
 
-    // 썸네일 처리
+    // 썸네일 처리 (첫 번째 컬러 옵션 이미지 기준)
     let thumbnailUrl = '';
     let thumbnailSource: 'user' | 'auto' = 'auto';
 
-    if (files.thumbnail && files.thumbnail.length > 0) {
+    if (filesByName.thumbnail && filesByName.thumbnail.length > 0) {
       // 사용자가 썸네일을 제공한 경우
-      const thumbnailFile = files.thumbnail[0];
+      const thumbnailFile = filesByName.thumbnail[0];
       if (!thumbnailFile) {
         res.status(400).json({ message: 'Thumbnail file is invalid' });
         return;
@@ -253,21 +471,21 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
       thumbnailUrl = thumbnailResult.thumbnailUrl;
       thumbnailSource = 'user';
     } else {
-      // 자동 썸네일 생성
-      const thumbnailResult = await ThumbnailGenerator.generateThumbnail(
-        imageFile.path,
-        imageFile.filename
-      );
+      // 첫 번째 컬러 옵션 이미지로 자동 썸네일 생성
+      // mainImageUrl은 /uploads/xxx.png 형태이므로 앞의 / 제거 후 process.cwd()와 결합
+      const imagePath = path.join(process.cwd(), mainImageUrl.startsWith('/') ? mainImageUrl.slice(1) : mainImageUrl);
+      console.log(`🔍 썸네일 생성용 이미지 경로:`, imagePath);
+      const thumbnailResult = await ThumbnailGenerator.generateThumbnail(imagePath);
       thumbnailUrl = thumbnailResult.thumbnailUrl;
       thumbnailSource = 'auto';
     }
 
-    const newOption = {
+    const newOption: any = {
       name,
-      imageUrl,
+      imageUrl: mainImageUrl,
       thumbnailUrl,
       thumbnailSource,
-      color: color || '#000000',
+      color: processedColorOptions,
       order: parseInt(order) || 0
     };
 
@@ -293,8 +511,8 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
     }
 
     const { categoryId, optionId } = req.params;
-    const { name, color, order } = req.body;
-    const files = req.files as MulterFiles;
+    const { name, colorOptions, order } = req.body;
+    const files = req.files as Express.Multer.File[];
 
     const category = await AvatarCategory.findById(categoryId);
     if (!category) {
@@ -316,39 +534,154 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
 
     // 기본 정보 업데이트
     if (name !== undefined) option.name = name;
-    if (color !== undefined) option.color = color;
     if (order !== undefined) option.order = parseInt(order);
 
-    // 새 이미지가 있는 경우
-    if (files && files.image && files.image.length > 0) {
-      const imageFile = files.image[0];
-      if (imageFile) {
-        // 기존 이미지 파일 삭제
-        if (oldImagePath) {
-          await deleteFileIfExists(oldImagePath);
+    // hair 카테고리 감지
+    const isHairCategory = category.type === 'hair';
+
+    // 파일 배열을 객체로 변환 (upload.any() 사용으로 인해)
+    const filesByName: { [key: string]: Express.Multer.File[] } = {};
+    if (Array.isArray(files)) {
+      files.forEach(file => {
+        if (!filesByName[file.fieldname]) {
+          filesByName[file.fieldname] = [];
         }
+        filesByName[file.fieldname].push(file);
+      });
+    }
 
-        option.imageUrl = `/uploads/${imageFile.filename}`;
+    // 컬러 옵션 업데이트
+    if (colorOptions !== undefined) {
+      let parsedColorOptions;
+      try {
+        parsedColorOptions = typeof colorOptions === 'string' ? JSON.parse(colorOptions) : colorOptions;
+      } catch (error) {
+        res.status(400).json({ message: 'Invalid colorOptions format' });
+        return;
+      }
 
-        // 기존 썸네일이 자동 생성된 것이면 새로 생성
+      if (!parsedColorOptions || !Array.isArray(parsedColorOptions) || parsedColorOptions.length === 0) {
+        res.status(400).json({ message: 'At least one color option is required' });
+        return;
+      }
+
+      // 기존 팔레트 이미지들 삭제
+      if (option.color && Array.isArray(option.color)) {
+        for (const colorOpt of option.color) {
+          if (colorOpt.paletteImageUrl) {
+            await PaletteImageProcessor.deletePaletteImage(colorOpt.paletteImageUrl);
+          }
+        }
+      }
+
+      // 새로운 팔레트 이미지 및 hair 리소스 이미지 처리
+      const paletteFiles = filesByName.palette || [];
+      const processedColorOptions = await Promise.all(
+        parsedColorOptions.map(async (colorOption: any, index: number) => {
+          let paletteImageUrl = '';
+          let resourceImages: { hairMiddleImageUrl: string; hairBackImageUrl?: string } | undefined;
+          
+          // 해당 인덱스에 팔레트 이미지가 있으면 처리
+          if (paletteFiles[index]) {
+            try {
+              const paletteResult = await PaletteImageProcessor.processPaletteImage(
+                paletteFiles[index].path,
+                paletteFiles[index].filename
+              );
+              paletteImageUrl = paletteResult.paletteImageUrl;
+            } catch (error) {
+              console.error(`Error processing palette image for color option ${index}:`, error);
+            }
+          } else if (colorOption.paletteImageUrl) {
+            // 기존 팔레트 이미지 유지
+            paletteImageUrl = colorOption.paletteImageUrl;
+          }
+
+          // hair 카테고리인 경우 리소스 이미지 처리
+          if (isHairCategory) {
+            const middleHairKey = `hair_${index}_middle`;
+            const backHairKey = `hair_${index}_back`;
+            
+            try {
+              // 리소스 이미지 객체 초기화
+              resourceImages = {} as { hairMiddleImageUrl: string; hairBackImageUrl?: string };
+              
+              // 기존 resourceImages 처리
+              if (colorOption.resourceImages) {
+                if (colorOption.resourceImages.hairMiddleImageUrl) {
+                  resourceImages.hairMiddleImageUrl = colorOption.resourceImages.hairMiddleImageUrl;
+                }
+                if (colorOption.resourceImages.hairBackImageUrl) {
+                  resourceImages.hairBackImageUrl = colorOption.resourceImages.hairBackImageUrl;
+                }
+              } else if (colorOption.imageUrl) {
+                // 기존 Hair 옵션에서 resourceImages가 없는 경우, imageUrl을 중간머리로 사용
+                resourceImages.hairMiddleImageUrl = colorOption.imageUrl;
+              }
+              
+              // 중간머리 처리 (필수)
+              if (filesByName[middleHairKey] && filesByName[middleHairKey].length > 0) {
+                const middleHairFile = filesByName[middleHairKey][0];
+                const middleImagePath = path.join('uploads', `hair_middle_${index}_${Date.now()}_${middleHairFile.originalname}`);
+                await fs.copyFile(middleHairFile.path, middleImagePath);
+                resourceImages.hairMiddleImageUrl = `/${middleImagePath}`;
+              }
+
+              // 뒷머리 처리 (선택사항)
+              if (filesByName[backHairKey] && filesByName[backHairKey].length > 0) {
+                const backHairFile = filesByName[backHairKey][0];
+                const backImagePath = path.join('uploads', `hair_back_${index}_${Date.now()}_${backHairFile.originalname}`);
+                await fs.copyFile(backHairFile.path, backImagePath);
+                resourceImages.hairBackImageUrl = `/${backImagePath}`;
+              }
+
+            } catch (error) {
+              console.error(`Error processing hair images for color option ${index}:`, error);
+            }
+          }
+
+          // Hair 카테고리에서 imageUrl 결정
+          let finalImageUrl = colorOption.imageUrl;
+          if (isHairCategory && resourceImages) {
+            // 중간머리가 있으면 사용, 없으면 기존 imageUrl 유지
+            finalImageUrl = resourceImages.hairMiddleImageUrl || colorOption.imageUrl;
+          }
+
+          return {
+            colorName: colorOption.colorName,
+            imageUrl: finalImageUrl,
+            paletteImageUrl,
+            ...(isHairCategory && { resourceImages })
+          };
+        })
+      );
+
+      option.color = processedColorOptions;
+      
+      // 첫 번째 컬러 옵션의 이미지를 메인 이미지로 업데이트
+      const newMainImageUrl = processedColorOptions[0]?.imageUrl;
+      console.log(`🔍 업데이트 - 새 메인 이미지 URL:`, newMainImageUrl, `기존:`, option.imageUrl);
+      if (newMainImageUrl && newMainImageUrl !== option.imageUrl) {
+        option.imageUrl = newMainImageUrl;
+        
+        // 메인 이미지가 변경되면 썸네일도 재생성 (자동 생성인 경우)
         if (option.thumbnailSource === 'auto') {
           // 기존 썸네일 삭제
           if (oldThumbnailPath) {
             await deleteFileIfExists(oldThumbnailPath);
           }
 
-          const thumbnailResult = await ThumbnailGenerator.generateThumbnail(
-            imageFile.path,
-            imageFile.filename
-          );
+          const imagePath = path.join(process.cwd(), newMainImageUrl.startsWith('/') ? newMainImageUrl.slice(1) : newMainImageUrl);
+          console.log(`🔍 업데이트 - 썸네일 생성용 이미지 경로:`, imagePath);
+          const thumbnailResult = await ThumbnailGenerator.generateThumbnail(imagePath);
           option.thumbnailUrl = thumbnailResult.thumbnailUrl;
         }
       }
     }
 
     // 새 썸네일이 있는 경우
-    if (files && files.thumbnail && files.thumbnail.length > 0) {
-      const thumbnailFile = files.thumbnail[0];
+    if (filesByName.thumbnail && filesByName.thumbnail.length > 0) {
+      const thumbnailFile = filesByName.thumbnail[0];
       if (thumbnailFile) {
         // 기존 썸네일 파일 삭제
         if (oldThumbnailPath) {
@@ -408,6 +741,15 @@ export const deleteAvatarOption = async (req: AuthRequest, res: Response): Promi
     if (option.thumbnailUrl) {
       const thumbnailPath = getThumbnailPathFromUrl(option.thumbnailUrl);
       await deleteFileIfExists(thumbnailPath);
+    }
+    
+    // 팔레트 이미지들 삭제
+    if (option.color && Array.isArray(option.color)) {
+      for (const colorOpt of option.color) {
+        if (colorOpt.paletteImageUrl) {
+          await PaletteImageProcessor.deletePaletteImage(colorOpt.paletteImageUrl);
+        }
+      }
     }
 
     category.options.splice(optionIndex, 1);

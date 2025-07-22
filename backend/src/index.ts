@@ -25,7 +25,7 @@ const app = express();
 const PORT = parseInt(process.env['PORT'] || '3000', 10);
 const HTTPS_PORT = parseInt(process.env['HTTPS_PORT'] || '3443', 10);
 const HOST = process.env['HOST'] || '0.0.0.0';
-const ENABLE_HTTPS = process.env['ENABLE_HTTPS'] === 'true';
+const ENABLE_HTTPS = process.env['ENABLE_HTTPS'] === 'true' && process.env.NODE_ENV !== 'production';
 
 // 로컬 IP 주소 찾기
 function getLocalIpAddress(): string {
@@ -85,10 +85,6 @@ connectDB();
 
 setupSwagger(app);
 
-app.get('/api/health', (_req, res) => {
-  res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
-});
-
 // 단순 이미지 업로드 엔드포인트 (프론트엔드 호환성을 위해)
 import { upload } from './middleware/upload';
 app.post('/api/upload', upload.single('file'), (req, res): void => {
@@ -102,6 +98,21 @@ app.post('/api/upload', upload.single('file'), (req, res): void => {
   });
 });
 
+// Health 체크 엔드포인트 (CloudType용)
+app.get(['/health', '/api/health', '/health2'], (req, res) => {
+  res.json({ 
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    server: 'AR Namecard API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    cors: 'enabled',
+    origin: req.headers.origin || 'no-origin',
+    mongodb: 'connected',
+    firebase: 'configured'
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/firebase', firebaseAuthRoutes);
 app.use('/api/users', userRoutes);
@@ -111,18 +122,6 @@ app.use('/api/characters', charactersRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/characters', adminAvatarRoutes);
 app.use('/api/admin/stickers', adminItemRoutes);
-
-// Health 체크 엔드포인트
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    server: 'AR Namecard API',
-    version: '1.0.0',
-    cors: 'enabled',
-    origin: req.headers.origin || 'no-origin'
-  });
-});
 
 app.use('*', (_req, res) => {
   res.status(404).json({ error: 'Route not found' });

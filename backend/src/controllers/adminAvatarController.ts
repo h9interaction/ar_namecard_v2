@@ -10,13 +10,6 @@ interface AuthRequest extends Request {
   user?: any;
 }
 
-interface MulterFiles {
-  image?: Express.Multer.File[];
-  thumbnail?: Express.Multer.File[];
-  palette?: Express.Multer.File[];
-  [key: string]: Express.Multer.File[] | undefined;  // 동적 필드명 지원 (hair_0_middle, hair_1_back 등)
-}
-
 // 파일 삭제 유틸리티 함수
 const deleteFileIfExists = async (filePath: string): Promise<void> => {
   try {
@@ -529,7 +522,6 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
     const option = category.options[optionIndex];
 
     // 기존 파일 경로 저장 (삭제용)
-    const oldImagePath = option.imageUrl ? getFilePathFromUrl(option.imageUrl) : '';
     const oldThumbnailPath = option.thumbnailUrl ? getThumbnailPathFromUrl(option.thumbnailUrl) : '';
 
     // 기본 정보 업데이트

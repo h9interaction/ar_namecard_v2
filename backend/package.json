@@ -4,7 +4,7 @@
   "description": "backend test",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "start": "NODE_ENV=production node dist/index.js",
     "start:dev": "node dist/index.js",
     "dev": "nodemon src/index.ts",

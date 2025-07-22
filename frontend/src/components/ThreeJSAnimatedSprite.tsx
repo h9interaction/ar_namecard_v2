@@ -9,6 +9,7 @@ interface ThreeJSAnimatedSpriteProps {
   scale: [number, number, number];
   animationSpeed?: number; // ms per frame
   renderOrder?: number;
+  onLoadComplete?: () => void;
 }
 
 const ThreeJSAnimatedSprite = ({
@@ -16,7 +17,8 @@ const ThreeJSAnimatedSprite = ({
   position,
   scale,
   animationSpeed = 250,
-  renderOrder = 1
+  renderOrder = 1,
+  onLoadComplete
 }: ThreeJSAnimatedSpriteProps) => {
   const [frames, setFrames] = useState<ExtractedFrame[]>([]);
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
@@ -27,11 +29,15 @@ const ThreeJSAnimatedSprite = ({
   // 스프라이트 프레임 추출
   useEffect(() => {
     let isMounted = true;
+    console.log(`[ThreeJSAnimatedSprite] 🚀 로딩 시작: ${spriteImage}`);
 
     const loadFrames = async () => {
       try {
         setIsLoading(true);
-        const extractedFrames = await extractAllFrames(`/src/assets/test_images/sprites/${spriteImage}`);
+        console.log(`[ThreeJSAnimatedSprite] 📥 프레임 추출 시작: ${spriteImage}`);
+        // spriteImage가 이미 완전한 백엔드 URL이므로 직접 사용
+        const extractedFrames = await extractAllFrames(spriteImage);
+        console.log(`[ThreeJSAnimatedSprite] 📊 프레임 추출 완료: ${spriteImage}, 프레임 수: ${extractedFrames.length}`);
 
         if (isMounted && extractedFrames.length > 0) {
           setFrames(extractedFrames);
@@ -42,15 +48,20 @@ const ThreeJSAnimatedSprite = ({
           setCurrentTexture(firstTexture);
 
           setIsLoading(false);
-          console.log(`✅ Three.js ${spriteImage}: ${extractedFrames.length} frames extracted`);
+          console.log(`[ThreeJSAnimatedSprite] ✅ 로딩 성공: ${spriteImage}`);
+          onLoadComplete?.(); // 로딩 완료 콜백 호출
         } else if (isMounted) {
           console.warn(`⚠️ No frames extracted for ${spriteImage}`);
           setIsLoading(false);
+          console.log(`[ThreeJSAnimatedSprite] 🔄 빈 프레임으로 완료: ${spriteImage}`);
+          onLoadComplete?.(); // 프레임이 없어도 로딩 완료로 처리
         }
       } catch (error) {
         console.error(`❌ Failed to extract frames for ${spriteImage}:`, error);
         if (isMounted) {
           setIsLoading(false);
+          console.log(`[ThreeJSAnimatedSprite] 💥 실패로 완료: ${spriteImage}`);
+          onLoadComplete?.(); // 실패해도 로딩 완료로 처리
         }
       }
     };
@@ -59,6 +70,7 @@ const ThreeJSAnimatedSprite = ({
 
     return () => {
       isMounted = false;
+      console.log(`[ThreeJSAnimatedSprite] 🔚 언마운트: ${spriteImage}`);
     };
   }, [spriteImage]);
 

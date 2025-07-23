@@ -368,10 +368,22 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
 
     // 팔레트 이미지 및 hair 리소스 이미지 처리
     const paletteFiles = filesByName.palette || [];
+    console.log(`🔍 받은 팔레트 파일들:`, {
+      paletteFilesLength: paletteFiles.length,
+      colorOptionsLength: parsedColorOptions.length,
+      paletteFileNames: paletteFiles.map((f, i) => `${i}: ${f.originalname}`)
+    });
+    
     const processedColorOptions = await Promise.all(
       parsedColorOptions.map(async (colorOption: any, index: number) => {
         let paletteImageUrl = '';
         let resourceImages: { hairMiddleImageUrl: string; hairBackImageUrl?: string } | undefined;
+        
+        console.log(`🔍 처리 중 - 컬러 옵션 ${index}:`, {
+          colorName: colorOption.colorName,
+          hasPaletteFile: !!paletteFiles[index],
+          paletteFileName: paletteFiles[index]?.originalname
+        });
         
         // 해당 인덱스에 팔레트 이미지가 있으면 처리
         if (paletteFiles[index]) {
@@ -575,10 +587,23 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
 
       // 새로운 팔레트 이미지 및 hair 리소스 이미지 처리
       const paletteFiles = filesByName.palette || [];
+      console.log(`🔍 업데이트 모드 - 받은 팔레트 파일들:`, {
+        paletteFilesLength: paletteFiles.length,
+        colorOptionsLength: parsedColorOptions.length,
+        paletteFileNames: paletteFiles.map((f, i) => `${i}: ${f.originalname}`)
+      });
+      
       const processedColorOptions = await Promise.all(
         parsedColorOptions.map(async (colorOption: any, index: number) => {
           let paletteImageUrl = '';
           let resourceImages: { hairMiddleImageUrl: string; hairBackImageUrl?: string } | undefined;
+          
+          console.log(`🔍 업데이트 처리 중 - 컬러 옵션 ${index}:`, {
+            colorName: colorOption.colorName,
+            hasPaletteFile: !!paletteFiles[index],
+            paletteFileName: paletteFiles[index]?.originalname,
+            existingPaletteUrl: colorOption.paletteImageUrl
+          });
           
           // 해당 인덱스에 팔레트 이미지가 있으면 처리
           if (paletteFiles[index]) {

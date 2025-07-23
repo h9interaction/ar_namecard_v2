@@ -581,6 +581,35 @@
                 grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             }
         }
+
+        /* 컬러 선택 UI 스타일 */
+        .color-select-container {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .color-select {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85em;
+            background: white;
+            cursor: pointer;
+        }
+
+        .color-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .color-select option {
+            padding: 4px;
+        }
     </style>
 </head>
 
@@ -988,7 +1017,28 @@
 
             return options.map(option => {
                 const optionId = option._id || option.id;
-                const isSelected = avatarSelections[categoryType] === optionId;
+                const currentSelection = avatarSelections[categoryType];
+                const isSelected = (typeof currentSelection === 'object' ? currentSelection.optionId : currentSelection) === optionId;
+                
+                // 컬러 옵션이 여러 개 있는지 확인
+                const hasMultipleColors = option.color && Array.isArray(option.color) && option.color.length > 1;
+                const selectedColorIndex = isSelected && typeof currentSelection === 'object' ? (currentSelection.colorIndex || 0) : 0;
+                
+                // 컬러 선택 UI 생성
+                const colorSelectUI = hasMultipleColors ? `
+                    <div class="color-select-container" style="margin-top: 8px; display: ${isSelected ? 'block' : 'none'};">
+                        <label style="font-size: 0.8em; color: #666; display: block; margin-bottom: 4px;">컬러 선택:</label>
+                        <select class="color-select" data-category="${categoryType}" data-option="${optionId}" 
+                                onchange="selectAvatarColor('${categoryType}', '${optionId}', this.value)"
+                                onclick="event.stopPropagation()">
+                            ${option.color.map((colorOpt, colorIndex) => `
+                                <option value="${colorIndex}" ${colorIndex === selectedColorIndex ? 'selected' : ''}>
+                                    ${colorOpt.colorName || `색상 ${colorIndex + 1}`}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                ` : '';
                 
                 return `
                     <div class="avatar-option ${isSelected ? 'selected' : ''}" 
@@ -1000,6 +1050,7 @@
                             : `<div style="width: 100%; height: 80px; background: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 0.8em;">이미지 없음</div>`
                         }
                         <div class="avatar-option-name">${option.name}</div>
+                        ${colorSelectUI}
                     </div>
                 `;
             }).join('');
@@ -1160,18 +1211,32 @@
         // 아바타 옵션 선택
         function selectAvatarOption(categoryType, optionId) {
             // 이전 선택 해제
-            const prevOption = document.querySelector(`[data-category="${categoryType}"][data-option="${avatarSelections[categoryType]}"]`);
+            const prevSelection = avatarSelections[categoryType];
+            const prevOptionId = typeof prevSelection === 'object' ? prevSelection.optionId : prevSelection;
+            const prevOption = document.querySelector(`[data-category="${categoryType}"][data-option="${prevOptionId}"]`);
             if (prevOption) {
                 prevOption.classList.remove('selected');
+                // 이전 컬러 선택 UI 숨기기
+                const prevColorContainer = prevOption.querySelector('.color-select-container');
+                if (prevColorContainer) {
+                    prevColorContainer.style.display = 'none';
+                }
             }
 
-            // 새로운 선택
-            avatarSelections[categoryType] = optionId;
+            // 새로운 선택 - 기본 컬러 인덱스 0으로 설정
+            avatarSelections[categoryType] = { optionId: optionId, colorIndex: 0 };
+            console.log('✅ 아바타 선택 업데이트:', categoryType, avatarSelections[categoryType]);
+            console.log('🔍 현재 전체 avatarSelections:', avatarSelections);
             
             // UI 업데이트
             const newOption = document.querySelector(`[data-category="${categoryType}"][data-option="${optionId}"]`);
             if (newOption) {
                 newOption.classList.add('selected');
+                // 새로운 컬러 선택 UI 표시
+                const colorContainer = newOption.querySelector('.color-select-container');
+                if (colorContainer) {
+                    colorContainer.style.display = 'block';
+                }
             }
 
             // 카테고리 선택 상태 업데이트
@@ -1180,11 +1245,37 @@
                 const category = avatarCategories.find(cat => cat.type === categoryType);
                 const option = category?.options?.find(opt => (opt._id || opt.id) === optionId);
                 if (option) {
-                    selectionElement.textContent = option.name;
+                    const colorName = option.color && option.color[0] ? ` (${option.color[0].colorName || '기본 색상'})` : '';
+                    selectionElement.textContent = option.name + colorName;
                     selectionElement.parentElement.parentElement.classList.add('selected');
                 }
             }
 
+            // 미리보기 업데이트
+            updatePreview();
+            updateSaveButton();
+        }
+
+        // 아바타 컬러 선택
+        function selectAvatarColor(categoryType, optionId, colorIndex) {
+            console.log(`🎨 컬러 선택: ${categoryType}, 옵션: ${optionId}, 컬러 인덱스: ${colorIndex}`);
+            
+            // 선택 데이터 업데이트
+            avatarSelections[categoryType] = { optionId: optionId, colorIndex: parseInt(colorIndex) };
+            console.log('🎨 컬러 선택 업데이트:', categoryType, avatarSelections[categoryType]);
+            console.log('🔍 현재 전체 avatarSelections:', avatarSelections);
+            
+            // 카테고리 선택 상태 텍스트 업데이트
+            const selectionElement = document.getElementById(`selection-${categoryType}`);
+            if (selectionElement) {
+                const category = avatarCategories.find(cat => cat.type === categoryType);
+                const option = category?.options?.find(opt => (opt._id || opt.id) === optionId);
+                if (option && option.color && option.color[colorIndex]) {
+                    const colorName = option.color[colorIndex].colorName || `색상 ${parseInt(colorIndex) + 1}`;
+                    selectionElement.textContent = `${option.name} (${colorName})`;
+                }
+            }
+            
             // 미리보기 업데이트
             updatePreview();
             updateSaveButton();
@@ -1378,15 +1469,25 @@
                 
                 // 각 카테고리별로 이미지 레이어 처리
                 for (const category of sortedCategories) {
-                    const optionId = avatarSelections[category.type];
+                    const selection = avatarSelections[category.type];
+                    // 새로운 데이터 구조와 기존 데이터 구조 모두 지원
+                    const optionId = typeof selection === 'object' ? selection.optionId : selection;
+                    const colorIndex = typeof selection === 'object' ? (selection.colorIndex || 0) : 0;
+                    
                     const option = category.options?.find(opt => (opt._id || opt.id) === optionId);
                     
                     if (!option) continue;
                     
+                    console.log(`🎨 아바타 합성 - ${category.type}:`, {
+                        optionName: option.name,
+                        colorIndex: colorIndex,
+                        totalColors: option.color?.length || 0
+                    });
+                    
                     // 헤어 카테고리의 레이어드 구조 처리
                     if (category.type === 'hair') {
-                        // 첫 번째 색상 옵션을 기본으로 사용 (색상 선택 기능이 없으므로)
-                        const colorOption = option.color?.[0];
+                        // 선택된 색상 옵션 사용
+                        const colorOption = option.color?.[colorIndex];
                         
                         // 레이어드 헤어 구조인지 확인 (resourceImages가 있는 경우)
                         if (colorOption?.resourceImages) {
@@ -1419,8 +1520,10 @@
                             }
                         }
                     } else {
-                        // 다른 카테고리들은 기존 방식 유지
-                        const imageUrl = option.imageUrl || option.thumbnailUrl;
+                        // 다른 카테고리들도 선택된 색상 옵션 사용
+                        const colorOption = option.color?.[colorIndex];
+                        // 선택된 색상의 이미지가 있으면 사용, 없으면 기본 이미지 사용
+                        const imageUrl = colorOption?.imageUrl || option.imageUrl || option.thumbnailUrl;
                         if (imageUrl) {
                             // 얼굴 카테고리는 레이어 1로 설정
                             const layer = category.type === 'face' ? 1 : (category.order || 0);
@@ -1512,14 +1615,32 @@
 
             const selectedAvatars = [];
             
-            for (const [categoryType, optionId] of Object.entries(avatarSelections)) {
+            for (const [categoryType, selection] of Object.entries(avatarSelections)) {
                 const category = avatarCategories.find(cat => cat.type === categoryType);
+                
+                // 새로운 데이터 구조와 기존 데이터 구조 모두 지원
+                const optionId = typeof selection === 'object' ? selection.optionId : selection;
+                const colorIndex = typeof selection === 'object' ? (selection.colorIndex || 0) : 0;
+                
                 const option = category?.options?.find(opt => (opt._id || opt.id) === optionId);
                 
                 if (option) {
+                    // 선택된 색상 정보 추가
+                    let optionName = option.name;
+                    if (option.color && option.color[colorIndex]) {
+                        const colorName = option.color[colorIndex].colorName || `색상 ${colorIndex + 1}`;
+                        optionName = `${option.name} (${colorName})`;
+                    }
+                    
+                    console.log(`📋 아바타 정보 표시 - ${categoryType}:`, {
+                        optionName: option.name,
+                        selectedColor: option.color?.[colorIndex]?.colorName,
+                        finalDisplayName: optionName
+                    });
+                    
                     selectedAvatars.push({
                         categoryName: category.name,
-                        optionName: option.name,
+                        optionName: optionName,
                         imageUrl: option.thumbnailUrl || option.imageUrl
                     });
                 }
@@ -1571,6 +1692,9 @@
                 return;
             }
 
+            console.log('🔍 저장하려는 avatarSelections:', avatarSelections);
+            console.log('🔍 avatarSelections 키 개수:', Object.keys(avatarSelections).length);
+            
             if (Object.keys(avatarSelections).length === 0) {
                 alert('❌ 아바타를 선택해주세요.');
                 return;
@@ -1645,6 +1769,9 @@
             // 사용자 ID 추출
             const userId = extractUserIdFromToken(currentUserToken) || 'temp-user-id';
 
+            console.log('💾 서버로 전송할 데이터:', customizationData);
+            console.log('💾 특히 avatarSelections:', customizationData.avatarSelections);
+
             const response = await fetch(`/api/avatars/${userId}`, {
                 method: 'PUT',
                 headers: {
@@ -1657,11 +1784,12 @@
             const data = await response.json();
 
             if (!response.ok) {
-                console.error('Server error response:', data);
-                console.error('Request data:', customizationData);
+                console.error('❌ 서버 에러 응답:', data);
+                console.error('❌ 요청 데이터:', customizationData);
                 throw new Error(data.error || data.message || '사용자 데이터 저장 실패');
             }
 
+            console.log('✅ 서버 저장 성공 응답:', data);
             return data;
         }
 
@@ -1698,12 +1826,26 @@
                     if (data.avatarSelections) {
                         avatarSelections = {};
                         for (const [categoryType, selectionData] of Object.entries(data.avatarSelections)) {
-                            if (typeof selectionData === 'object' && selectionData.id) {
-                                // 객체 형태인 경우 ID만 추출
-                                avatarSelections[categoryType] = selectionData.id;
+                            if (typeof selectionData === 'object') {
+                                if (selectionData.optionId && typeof selectionData.colorIndex === 'number') {
+                                    // 새로운 {optionId, colorIndex} 구조인 경우 그대로 사용
+                                    avatarSelections[categoryType] = {
+                                        optionId: selectionData.optionId,
+                                        colorIndex: selectionData.colorIndex
+                                    };
+                                } else if (selectionData.id) {
+                                    // 기존 {id} 구조인 경우 새 구조로 변환
+                                    avatarSelections[categoryType] = {
+                                        optionId: selectionData.id,
+                                        colorIndex: 0
+                                    };
+                                }
                             } else if (typeof selectionData === 'string') {
-                                // 이미 ID 문자열인 경우 그대로 사용
-                                avatarSelections[categoryType] = selectionData;
+                                // ID 문자열인 경우 새 구조로 변환
+                                avatarSelections[categoryType] = {
+                                    optionId: selectionData,
+                                    colorIndex: 0
+                                };
                             }
                         }
                         console.log('🔍 변환된 avatarSelections:', avatarSelections);
@@ -1760,19 +1902,40 @@
             console.log('🔍 updateUIFromLoadedData 시작');
             
             // 아바타 선택 상태 업데이트
-            for (const [categoryType, optionId] of Object.entries(avatarSelections)) {
-                console.log(`🔍 아바타 선택 업데이트: ${categoryType} = ${optionId}`);
+            for (const [categoryType, selection] of Object.entries(avatarSelections)) {
+                // 새로운 데이터 구조와 기존 데이터 구조 모두 지원
+                const optionId = typeof selection === 'object' ? selection.optionId : selection;
+                const colorIndex = typeof selection === 'object' ? (selection.colorIndex || 0) : 0;
+                
+                console.log(`🔍 아바타 선택 업데이트: ${categoryType}`, { optionId, colorIndex });
+                
                 const option = document.querySelector(`[data-category="${categoryType}"][data-option="${optionId}"]`);
                 if (option) {
                     option.classList.add('selected');
                     console.log(`✅ 아바타 선택 UI 업데이트 성공: ${categoryType}`);
+                    
+                    // 컬러 선택 UI 복원
+                    const colorContainer = option.querySelector('.color-select-container');
+                    if (colorContainer) {
+                        colorContainer.style.display = 'block';
+                        const colorSelect = colorContainer.querySelector('.color-select');
+                        if (colorSelect) {
+                            colorSelect.value = colorIndex;
+                        }
+                    }
                     
                     const selectionElement = document.getElementById(`selection-${categoryType}`);
                     if (selectionElement) {
                         const category = avatarCategories.find(cat => cat.type === categoryType);
                         const optionData = category?.options?.find(opt => (opt._id || opt.id) === optionId);
                         if (optionData) {
-                            selectionElement.textContent = optionData.name;
+                            // 선택된 색상 정보 포함하여 표시
+                            let displayName = optionData.name;
+                            if (optionData.color && optionData.color[colorIndex]) {
+                                const colorName = optionData.color[colorIndex].colorName || `색상 ${colorIndex + 1}`;
+                                displayName = `${optionData.name} (${colorName})`;
+                            }
+                            selectionElement.textContent = displayName;
                             selectionElement.parentElement.parentElement.classList.add('selected');
                         }
                     }
@@ -1809,6 +1972,7 @@
             // 미리보기 업데이트
             updatePreview();
             updateSelectedItemsInfo();
+            updateSelectedAvatarInfo(); // 아바타 정보 업데이트 추가
             updateSaveButton();
             console.log('✅ updateUIFromLoadedData 완료');
         }

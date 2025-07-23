@@ -883,6 +883,15 @@
                         paletteImageUrl: existingPaletteUrl
                     };
                     
+                    console.log(`🔍 유효한 컬러 옵션 생성 - 컬러 ${index}:`, {
+                        colorName,
+                        hasImageFile: !!imageFile,
+                        hasPaletteFile: !!paletteFile,
+                        hasExistingImageUrl: !!existingImageUrl,
+                        hasExistingPaletteUrl: !!existingPaletteUrl,
+                        paletteFileName: paletteFile?.name
+                    });
+                    
                     // hair 카테고리인 경우 hair 파일들 및 기존 데이터 추가
                     if (isHairCategory) {
                         colorOption.hairMiddleFile = hairMiddleFile;
@@ -929,6 +938,7 @@
                 console.log(`🔍 loadColorOptions - 컬러 옵션 ${index}:`, {
                     colorName: colorOption.colorName,
                     imageUrl: colorOption.imageUrl,
+                    paletteImageUrl: colorOption.paletteImageUrl,
                     resourceImages: colorOption.resourceImages,
                     isHairCategory
                 });
@@ -944,7 +954,10 @@
 
                 const palettePreview = colorOption.paletteImageUrl ?
                     `<img src="${colorOption.paletteImageUrl}" alt="현재 팔레트" class="palette-circle" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-top: 5px;" onerror="this.style.display='none'; this.nextElementSibling.textContent='팔레트 이미지 로드 실패';">
-                     <div style="font-size: 12px; color: #666; margin-top: 5px;">현재 팔레트 이미지</div>` : '';
+                     <div style="font-size: 12px; color: #666; margin-top: 5px;">현재 팔레트 이미지</div>` : 
+                    `<div style="color: #999; text-align: center; padding: 10px; border: 1px dashed #ddd; border-radius: 50%; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 5px;">
+                        팔레트<br>없음
+                     </div>`;
 
                 // hair 카테고리용 기존 데이터 미리보기
                 const resourceImages = colorOption.resourceImages || {};
@@ -958,10 +971,16 @@
                         <div class="hair-middle-preview">
                             ${middleHair ? `
                                 <img src="${middleHair}" alt="현재 중간머리" 
-                                     style="max-width: 60px; max-height: 60px; border-radius: 3px; border: 1px solid #ddd; margin-top: 5px;">
+                                     style="max-width: 60px; max-height: 60px; border-radius: 3px; border: 1px solid #ddd; margin-top: 5px;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.textContent='중간머리 이미지 로드 실패';">
                                 <br><small style="color: #666;">현재 중간머리</small>
                                 <br><small style="color: #999;">새 파일 선택 시 교체됩니다</small>
-                            ` : ''}
+                            ` : `
+                                <div style="color: #999; text-align: center; padding: 10px; border: 1px dashed #ddd; border-radius: 3px; margin-top: 5px;">
+                                    <div>현재 중간머리 없음</div>
+                                    <small>파일을 선택해주세요</small>
+                                </div>
+                            `}
                         </div>
                     </div>
                     <div class="form-group hair-resource-group" style="border: 2px dashed #3498db; padding: 15px; border-radius: 5px; background: #f0f8ff;">
@@ -970,10 +989,11 @@
                         <div class="hair-back-preview">
                             ${backHair ? `
                                 <img src="${backHair}" alt="현재 뒷머리" 
-                                     style="max-width: 60px; max-height: 60px; border-radius: 3px; border: 1px solid #ddd; margin-top: 5px;">
+                                     style="max-width: 60px; max-height: 60px; border-radius: 3px; border: 1px solid #ddd; margin-top: 5px;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.textContent='뒷머리 이미지 로드 실패';">
                                 <br><small style="color: #666;">현재 뒷머리</small>
                                 <br><small style="color: #999;">새 파일 선택 시 교체됩니다</small>
-                            ` : '<div style="color: #999; text-align: center; padding: 10px;"><div>현재 뒷머리 없음</div><small>파일 선택 시 추가됩니다</small></div>'}
+                            ` : '<div style="color: #999; text-align: center; padding: 10px; border: 1px dashed #ddd; border-radius: 3px; margin-top: 5px;"><div>현재 뒷머리 없음</div><small>파일 선택 시 추가됩니다</small></div>'}
                         </div>
                         <small style="color: #666;">없으면 중간머리만 사용됩니다</small>
                     </div>
@@ -990,8 +1010,17 @@
                             <label>리소스 이미지 파일</label>
                             <input type="file" class="color-image" accept="image/*" onchange="previewColorImage(this)">
                             <div class="color-preview">
-                                <img src="${colorOption.imageUrl}" alt="현재 이미지" class="color-option-preview">
-                                <div style="font-size: 12px; color: #666; margin-top: 5px;">현재 이미지 (새 파일을 선택하면 교체됩니다)</div>
+                                ${colorOption.imageUrl ? `
+                                    <img src="${colorOption.imageUrl}" alt="현재 이미지" class="color-option-preview" 
+                                         style="max-width: 60px; max-height: 60px; border-radius: 3px; border: 1px solid #ddd; margin-top: 5px;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.textContent='이미지 로드 실패';">
+                                    <div style="font-size: 12px; color: #666; margin-top: 5px;">현재 이미지 (새 파일을 선택하면 교체됩니다)</div>
+                                ` : `
+                                    <div style="color: #999; text-align: center; padding: 10px; border: 1px dashed #ddd; border-radius: 3px;">
+                                        <div>현재 이미지 없음</div>
+                                        <small>파일을 선택해주세요</small>
+                                    </div>
+                                `}
                             </div>
                         </div>
                         ` : `
@@ -1296,9 +1325,19 @@
                 }
 
                 // 팔레트 이미지들 및 hair 파일들 추가
+                console.log(`🔍 FormData 처리 시작 - 총 ${colorOptions.length}개 컬러 옵션`);
                 colorOptions.forEach((colorOption, index) => {
+                    console.log(`🔍 컬러 옵션 ${index} 처리:`, {
+                        colorName: colorOption.colorName,
+                        hasPaletteFile: !!colorOption.paletteFile,
+                        paletteFileName: colorOption.paletteFile?.name
+                    });
+                    
                     if (colorOption.paletteFile) {
                         formData.append('palette', colorOption.paletteFile);
+                        console.log(`✅ 팔레트 이미지 추가 (색상 옵션 ${index}):`, colorOption.paletteFile.name);
+                    } else {
+                        console.log(`⚠️ 컬러 옵션 ${index}에 팔레트 파일 없음`);
                     }
                     
                     // Hair 카테고리인 경우 각 컬러별 hair 파일들 추가

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase 로그인 테스트 - AR 명함</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-section,
+        .result-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .login-section {
+            background-color: #f9f9f9;
+        }
+
+        .result-section {
+            background-color: #f0f8f0;
+            display: none;
+        }
+
+        .error-section {
+            background-color: #fff0f0;
+            display: none;
+        }
+
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            background-color: #3367d6;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+
+        .test-btn {
+            background-color: #28a745;
+        }
+
+        .test-btn:hover {
+            background-color: #218838;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .status.loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .user-info {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .user-info strong {
+            color: #495057;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Authentication 테스트</h1>
+
+        <div class="login-section" style="background-color: #fff3cd; border: 1px solid #ffeaa7;">
+            <h3>⚠️ 설정 필요</h3>
+            <p><strong>테스트하기 전에 Firebase 설정을 완료해야 합니다:</strong></p>
+            <ol>
+                <li>Firebase Console에서 프로젝트 설정 → 웹 앱 추가</li>
+                <li>Authentication → 로그인 방법 → Google 사용 설정</li>
+                <li>이 HTML 파일의 <code>firebaseConfig</code>를 실제 값으로 교체</li>
+                <li>승인된 도메인에 <code>localhost</code> 추가 (개발용)</li>
+            </ol>
+        </div>
+
+        <div class="login-section">
+            <h3>1. Firebase 로그인</h3>
+            <p>Google 계정으로 로그인하여 Firebase ID 토큰을 받아옵니다.</p>
+            <button id="loginBtn" onclick="signInWithGoogle()">Google로 로그인</button>
+            <button id="logoutBtn" onclick="signOut()" class="logout-btn" style="display: none;">로그아웃</button>
+            <div id="firebaseStatus"></div>
+        </div>
+
+        <div class="login-section">
+            <h3>2. 백엔드 인증 테스트</h3>
+            <p>받아온 Firebase ID 토큰을 백엔드로 전송하여 AR 명함 시스템 JWT를 받아옵니다.</p>
+            <button id="testBackendBtn" onclick="testBackendAuth()" class="test-btn" disabled>백엔드 인증 테스트</button>
+            <div id="backendStatus"></div>
+        </div>
+
+        <div id="resultSection" class="result-section">
+            <h3>✅ 인증 성공 결과</h3>
+            <div id="resultContent"></div>
+        </div>
+
+        <div id="errorSection" class="error-section">
+            <h3>❌ 오류 정보</h3>
+            <div id="errorContent"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase 설정 - 실제 프로젝트 정보로 업데이트 필요
+        // 주의: 실제 사용 시에는 Firebase Console에서 정확한 설정값을 확인하여 교체하세요
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIzVh3sVKobi_lFm8dQbx1IgnTOwIe1fM",
+            authDomain: "hninepeople.firebaseapp.com",
+            projectId: "hninepeople",
+            storageBucket: "hninepeople.firebasestorage.app",
+            messagingSenderId: "666601587213",
+            appId: "1:666601587213:web:1f407eaa9c915856050b44"
+        };
+
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        let currentIdToken = null;
+
+        // 전역 함수들을 window에 등록
+        window.signInWithGoogle = async function () {
+            const loginBtn = document.getElementById('loginBtn');
+            const status = document.getElementById('firebaseStatus');
+
+            try {
+                loginBtn.disabled = true;
+                status.innerHTML = '<div class="status loading">Google 로그인 중...</div>';
+
+                const result = await signInWithPopup(auth, provider);
+                currentUser = result.user;
+                currentIdToken = await currentUser.getIdToken();
+
+                updateUIAfterLogin();
+                status.innerHTML = '<div class="status success">✅ Firebase 로그인 성공!</div>';
+
+            } catch (error) {
+                console.error('로그인 실패:', error);
+                status.innerHTML = `<div class="status error">❌ 로그인 실패: ${error.message}</div>`;
+                loginBtn.disabled = false;
+            }
+        };
+
+        window.signOut = async function () {
+            try {
+                await firebaseSignOut(auth);
+                currentUser = null;
+                currentIdToken = null;
+                updateUIAfterLogout();
+                document.getElementById('firebaseStatus').innerHTML = '<div class="status success">✅ 로그아웃 완료</div>';
+            } catch (error) {
+                console.error('로그아웃 실패:', error);
+            }
+        };
+
+        window.testBackendAuth = async function () {
+            const testBtn = document.getElementById('testBackendBtn');
+            const status = document.getElementById('backendStatus');
+            const resultSection = document.getElementById('resultSection');
+            const errorSection = document.getElementById('errorSection');
+
+            if (!currentIdToken) {
+                status.innerHTML = '<div class="status error">❌ 먼저 Firebase 로그인을 해주세요.</div>';
+                return;
+            }
+
+            try {
+                testBtn.disabled = true;
+                status.innerHTML = '<div class="status loading">백엔드 인증 테스트 중...</div>';
+
+                const response = await fetch('/api/auth/firebase/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        idToken: currentIdToken
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 성공
+                    status.innerHTML = '<div class="status success">✅ 백엔드 인증 성공!</div>';
+                    displaySuccessResult(data);
+                    resultSection.style.display = 'block';
+                    errorSection.style.display = 'none';
+                } else {
+                    // 실패
+                    status.innerHTML = '<div class="status error">❌ 백엔드 인증 실패</div>';
+                    displayErrorResult(data, response.status);
+                    resultSection.style.display = 'none';
+                    errorSection.style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('백엔드 인증 오류:', error);
+                status.innerHTML = '<div class="status error">❌ 네트워크 오류: ' + error.message + '</div>';
+                errorSection.style.display = 'block';
+                document.getElementById('errorContent').innerHTML = `<pre>${JSON.stringify({ error: error.message }, null, 2)}</pre>`;
+            } finally {
+                testBtn.disabled = false;
+            }
+        };
+
+        function updateUIAfterLogin() {
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+            document.getElementById('testBackendBtn').disabled = false;
+
+            // Firebase 사용자 정보 표시
+            const firebaseInfo = `
+                <div class="user-info">
+                    <strong>이름:</strong> <span>${currentUser.displayName || 'N/A'}</span>
+                    <strong>이메일:</strong> <span>${currentUser.email}</span>
+                    <strong>UID:</strong> <span>${currentUser.uid}</span>
+                    <strong>ID 토큰:</strong> <span style="font-size: 10px; word-break: break-all;">${currentIdToken.substring(0, 50)}...</span>
+                </div>
+            `;
+            document.getElementById('firebaseStatus').innerHTML += firebaseInfo;
+        }
+
+        function updateUIAfterLogout() {
+            document.getElementById('loginBtn').style.display = 'inline-block';
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('testBackendBtn').disabled = true;
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+            document.getElementById('backendStatus').innerHTML = '';
+        }
+
+        function displaySuccessResult(data) {
+            const content = `
+                <h4>🎉 AR 명함 시스템 인증 성공!</h4>
+                <div class="user-info">
+                    <strong>메시지:</strong> <span>${data.message}</span>
+                    <strong>사용자 이름:</strong> <span>${data.user.nameKr} (${data.user.nameEn})</span>
+                    <strong>이메일:</strong> <span>${data.user.email}</span>
+                    <strong>AR ID:</strong> <span>${data.user.arId}</span>
+                    <strong>역할:</strong> <span>${data.user.role}</span>
+                    <strong>부서:</strong> <span>${data.user.part}</span>
+                    <strong>관리자:</strong> <span>${data.user.isAdmin ? '예' : '아니오'}</span>
+                    <strong>명함 활성화:</strong> <span>${data.user.isNamecardActive ? '예' : '아니오'}</span>
+                </div>
+                <h5>JWT 토큰:</h5>
+                <pre>${data.token}</pre>
+                <h5>전체 응답 데이터:</h5>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            document.getElementById('resultContent').innerHTML = content;
+        }
+
+        function displayErrorResult(data, status) {
+            const content = `
+                <h4>HTTP Status: ${status}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            document.getElementById('errorContent').innerHTML = content;
+        }
+
+        // 인증 상태 변화 감지
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('사용자 로그인됨:', user.email);
+            } else {
+                console.log('사용자 로그아웃됨');
+            }
+        });
+    </script>
+</body>
+
+</html>

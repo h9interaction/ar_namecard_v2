@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스티커 관리 테스트 - AR 명함</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .auth-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input, select, textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea {
+            width: 200px;
+        }
+
+        input[type="file"] {
+            width: 300px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .status.loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .category-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .category-title::before {
+            content: '▶';
+            font-size: 12px;
+            margin-right: 10px;
+            transition: transform 0.2s;
+        }
+
+        .category-card:not(.collapsed) .category-title::before {
+            transform: rotate(90deg);
+        }
+
+        .category-card.collapsed .category-items {
+            display: none;
+        }
+
+        .modal {
+            display: none !important;
+            position: fixed !important;
+            z-index: 9999 !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .modal.show {
+            display: block !important;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .item-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .thumbnail-source {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .category-items {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .multi-upload-container {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            background-color: #fafafa;
+        }
+
+        .multi-upload-container.dragover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+
+        .file-items {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .file-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: white;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .file-preview {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .remove-file {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .remove-file:hover {
+            background-color: #c82333;
+        }
+
+        .batch-controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .batch-input {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s ease;
+        }
+
+        .upload-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .animation-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .animation-preview {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px auto;
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+
+        .form-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background-color: #f9f9f9;
+        }
+
+        .form-section h4 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        input:disabled, select:disabled {
+            background-color: #f5f5f5;
+            color: #666;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎮 스티커 관리 테스트 페이지</h1>
+
+        <!-- 인증 섹션 -->
+        <div class="section auth-section">
+            <h3>🔐 관리자 인증</h3>
+            <p>스티커 관리 기능을 사용하려면 관리자 권한이 필요합니다.</p>
+            <div class="controls">
+                <input type="text" id="adminToken" placeholder="관리자 JWT 토큰 입력" style="width: 400px;">
+                <button onclick="setAuthToken()">토큰 설정</button>
+                <button onclick="getAdminToken()" class="btn-success">관리자 토큰 생성</button>
+                <button onclick="clearAuthToken()" class="btn-secondary">토큰 초기화</button>
+            </div>
+            <div id="authStatus"></div>
+        </div>
+
+        <!-- 카테고리 관리 섹션 -->
+        <div class="section">
+            <h3>📁 스티커 카테고리 관리</h3>
+            <div class="controls">
+                <button onclick="openCreateCategoryModal()" class="btn-success">새 카테고리 추가</button>
+                <button onclick="loadCategories()" class="btn-secondary">새로고침</button>
+            </div>
+            <div id="categoryStatus"></div>
+            <div id="categoriesContainer"></div>
+        </div>
+    </div>
+
+    <!-- 카테고리 생성/수정 모달 -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCategoryModal()">&times;</span>
+            <h3 id="categoryModalTitle">📁 새 카테고리 추가</h3>
+            <form id="categoryForm">
+                <input type="hidden" id="categoryId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="categoryName">카테고리 이름 *</label>
+                        <input type="text" id="categoryName" required placeholder="예: 운동, 음료, 음식, 취미">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="categoryType">카테고리 타입 *</label>
+                        <input type="text" id="categoryType" required placeholder="예: exercise, drink, food, hobby">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoryOrder">순서</label>
+                    <input type="number" id="categoryOrder" min="0" value="0">
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" onclick="closeCategoryModal()" class="btn-secondary">취소</button>
+                    <button type="submit" class="btn-success">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 스티커 생성/수정 모달 -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeItemModal()">&times;</span>
+            <h3 id="itemModalTitle">🎮 새 스티커 추가</h3>
+            <form id="itemForm" enctype="multipart/form-data">
+                <input type="hidden" id="itemCategoryId">
+                <input type="hidden" id="itemId">
+                
+                <!-- 단일 스티커 추가 모드 -->
+                <div id="singleItemMode">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemName">스티커 이름 *</label>
+                            <input type="text" id="itemName" required placeholder="예: 달리기, 커피, 햄버거">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="itemOrder">순서</label>
+                            <input type="number" id="itemOrder" min="0" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemImage">스티커 이미지 * (스프라이트 시퀀스 또는 단일 이미지)</label>
+                        <input type="file" id="itemImage" accept="image/*">
+                        <div id="imagePreview"></div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h4>🎬 애니메이션 설정 (선택사항)</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="itemFrames">총 프레임 수</label>
+                                <input type="number" id="itemFrames" min="1" placeholder="예: 16">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="itemColumns">컬럼 수</label>
+                                <input type="number" id="itemColumns" min="1" max="64" value="16" placeholder="기본값: 16">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="itemDuration">애니메이션 지속시간 (ms)</label>
+                                <input type="number" id="itemDuration" min="1" placeholder="예: 1000">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="itemAnimationType">애니메이션 타입</label>
+                                <select id="itemAnimationType" onchange="handleAnimationTypeChange()">
+                                    <option value="">선택하세요</option>
+                                    <option value="none">애니메이션 없음 (스틸 이미지)</option>
+                                    <option value="loop">반복 (loop)</option>
+                                    <option value="once">한 번 (once)</option>
+                                    <option value="pingpong">왕복 (pingpong)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemThumbnail">썸네일 이미지 (300x300px 권장)</label>
+                        <input type="file" id="itemThumbnail" accept="image/*">
+                        <small>썸네일을 제공하지 않으면 원본 이미지에서 자동 생성됩니다.</small>
+                        <div id="thumbnailPreview"></div>
+                    </div>
+                </div>
+
+                <!-- 다중 스티커 추가 모드 -->
+                <div id="multiItemMode" style="display: none;">
+                    <div class="form-group">
+                        <label>이미지 파일 선택 (여러 개 선택 가능)</label>
+                        <div class="multi-upload-container" id="multiUploadContainer">
+                            <p>여기에 파일을 드래그하거나 클릭하여 선택하세요</p>
+                            <input type="file" id="multiItemImages" accept="image/*" multiple style="display: none;">
+                            <button type="button" onclick="document.getElementById('multiItemImages').click()" class="btn-success">파일 선택</button>
+                        </div>
+                    </div>
+
+                    <!-- 일괄 설정 -->
+                    <div class="form-section">
+                        <h4>🔧 일괄 설정</h4>
+                        <div class="batch-controls">
+                            <input type="number" id="batchOrderStart" min="0" value="0" class="batch-input" placeholder="시작 순서">
+                            <input type="number" id="batchFrames" min="1" class="batch-input" placeholder="공통 프레임 수">
+                            <input type="number" id="batchColumns" min="1" max="64" value="16" class="batch-input" placeholder="공통 컬럼 수">
+                            <input type="number" id="batchDuration" min="1" class="batch-input" placeholder="공통 지속시간 (ms)">
+                            <select id="batchAnimationType" class="batch-input" onchange="handleBatchAnimationTypeChange()">
+                                <option value="">애니메이션 타입</option>
+                                <option value="none">애니메이션 없음 (스틸 이미지)</option>
+                                <option value="loop">반복 (loop)</option>
+                                <option value="once">한 번 (once)</option>
+                                <option value="pingpong">왕복 (pingpong)</option>
+                            </select>
+                            <button type="button" onclick="applyBatchSettings()" class="btn-secondary">일괄 적용</button>
+                        </div>
+                    </div>
+
+                    <!-- 파일 목록 -->
+                    <div id="fileItemsContainer" class="file-items"></div>
+
+                    <!-- 업로드 진행률 -->
+                    <div id="uploadProgress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="upload-status" id="uploadStatus"></div>
+                    </div>
+                </div>
+                
+                <!-- 모드 전환 버튼 -->
+                <div style="text-align: center; margin: 20px 0;">
+                    <button type="button" id="toggleModeBtn" onclick="toggleUploadMode()" class="btn-secondary">다중 업로드 모드</button>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" onclick="closeItemModal()" class="btn-secondary">취소</button>
+                    <button type="submit" class="btn-success" id="submitItemBtn">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let categories = [];
+        let isMultiMode = false;
+        let selectedFiles = [];
+        let uploadProgress = 0;
+        let expandedCategories = new Set(); // 열린 카테고리 상태 추적
+
+        // 인증 토큰 설정
+        function setAuthToken() {
+            const token = document.getElementById('adminToken').value.trim();
+            if (!token) {
+                showStatus('authStatus', 'error', '토큰을 입력해주세요.');
+                return;
+            }
+            
+            currentToken = token;
+            localStorage.setItem('adminToken', token);
+            showStatus('authStatus', 'success', '✅ 관리자 토큰이 설정되었습니다.');
+            
+            // 토큰 설정 후 카테고리 목록 자동 로드
+            loadCategories();
+        }
+
+        // 관리자 토큰 생성
+        async function getAdminToken() {
+            try {
+                showStatus('authStatus', 'loading', '관리자 토큰을 생성하는 중...');
+
+                const response = await fetch('/api/auth/test-token/001', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const token = data.token;
+                    document.getElementById('adminToken').value = token;
+                    currentToken = token;
+                    localStorage.setItem('adminToken', token);
+                    
+                    showStatus('authStatus', 'success', `✅ 관리자 토큰이 생성되었습니다. (사용자: ${data.user.nameKr})`);
+                    
+                    // 토큰 생성 후 카테고리 목록 자동 로드
+                    loadCategories();
+                } else {
+                    showStatus('authStatus', 'error', `❌ 토큰 생성 실패: ${data.message || '관리자 사용자를 찾을 수 없습니다.'}`);
+                }
+
+            } catch (error) {
+                console.error('토큰 생성 오류:', error);
+                showStatus('authStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 토큰 초기화
+        function clearAuthToken() {
+            currentToken = '';
+            localStorage.removeItem('adminToken');
+            document.getElementById('adminToken').value = '';
+            showStatus('authStatus', 'success', '🔄 토큰이 초기화되었습니다.');
+            
+            // 카테고리 목록 숨기기
+            document.getElementById('categoriesContainer').innerHTML = '';
+        }
+
+        // 페이지 로드 시 저장된 토큰 복원
+        window.addEventListener('load', function() {
+            const savedToken = localStorage.getItem('adminToken');
+            if (savedToken) {
+                document.getElementById('adminToken').value = savedToken;
+                currentToken = savedToken;
+                showStatus('authStatus', 'success', '✅ 저장된 토큰을 불러왔습니다.');
+                loadCategories();
+            }
+
+            // 드래그 앤 드롭 이벤트 설정
+            setupDragAndDrop();
+        });
+
+        // 상태 메시지 표시
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 카테고리 목록 로드
+        async function loadCategories() {
+            if (!currentToken) {
+                showStatus('categoryStatus', 'error', '❌ 먼저 관리자 토큰을 설정해주세요.');
+                return;
+            }
+
+            try {
+                showStatus('categoryStatus', 'loading', '카테고리 목록을 불러오는 중...');
+
+                const response = await fetch('/api/admin/stickers/categories', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    categories = data.categories;
+                    renderCategories();
+                    showStatus('categoryStatus', 'success', `✅ ${categories.length}개의 카테고리를 불러왔습니다.`);
+                } else {
+                    showStatus('categoryStatus', 'error', `❌ ${data.message || '카테고리 목록 로드 실패'}`);
+                }
+
+            } catch (error) {
+                console.error('카테고리 목록 로드 오류:', error);
+                showStatus('categoryStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 카테고리 렌더링
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            if (categories.length === 0) {
+                container.innerHTML = '<p>등록된 카테고리가 없습니다.</p>';
+                return;
+            }
+
+            categories.forEach(category => {
+                // ID 필드 확인 - _id 또는 id 사용
+                const categoryId = category._id || category.id;
+                console.log('Category object:', category);
+                console.log('Category ID:', categoryId);
+                
+                const categoryCard = document.createElement('div');
+                const isExpanded = expandedCategories.has(categoryId);
+                categoryCard.className = `category-card ${isExpanded ? '' : 'collapsed'}`;
+                categoryCard.setAttribute('data-category-id', categoryId);
+                categoryCard.innerHTML = `
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <div class="category-title">${category.name} (${category.type})</div>
+                        <div>
+                            <button onclick="event.stopPropagation(); openCreateItemModal('${categoryId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">스티커 추가</button>
+                            <button onclick="event.stopPropagation(); editCategory('${categoryId}')" class="btn-warning" style="padding: 5px 10px; font-size: 12px;">수정</button>
+                            <button onclick="event.stopPropagation(); deleteCategory('${categoryId}')" class="btn-danger" style="padding: 5px 10px; font-size: 12px;">삭제</button>
+                        </div>
+                    </div>
+                    <div class="category-items">
+                        <p><strong>스티커 수:</strong> ${category.items ? category.items.length : 0}개</p>
+                        <div class="items-grid" id="items-${categoryId}">
+                            ${renderItems(category.items || [], categoryId)}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(categoryCard);
+            });
+        }
+
+        function toggleCategory(headerElement) {
+            const card = headerElement.closest('.category-card');
+            const categoryId = card.getAttribute('data-category-id');
+            
+            card.classList.toggle('collapsed');
+            
+            // 상태 추적
+            if (card.classList.contains('collapsed')) {
+                expandedCategories.delete(categoryId);
+            } else {
+                expandedCategories.add(categoryId);
+            }
+        }
+
+        // 스티커 렌더링
+        function renderItems(items, categoryId) {
+            if (!items || items.length === 0) {
+                return '<p>등록된 스티커이 없습니다.</p>';
+            }
+
+            return items.map(item => {
+                const itemId = item._id || item.id;
+                const hasAnimation = item.animation && item.animation.frames > 1;
+                
+                return `
+                    <div class="item-card">
+                        <div class="item-image-container">
+                            ${item.thumbnailUrl ? `<img src="${item.thumbnailUrl}" alt="${item.name}" class="item-image">` : '<div class="item-image" style="background-color: #ddd; display: flex; align-items: center; justify-content: center;">썸네일 없음</div>'}
+                        </div>
+                        <div class="item-name">${item.name}</div>
+                        ${hasAnimation ? `<div class="animation-info">🎬 ${item.animation.frames}프레임 / ${item.animation.duration}ms</div>` : ''}
+                        <div class="thumbnail-source">썸네일: ${item.thumbnailSource === 'user' ? '사용자 제공' : '자동 생성'}</div>
+                        <div class="item-actions">
+                            <button onclick="openEditItemModal('${categoryId}', '${itemId}', '${item.name}')" class="btn-warning" style="padding: 3px 8px; font-size: 11px;">수정</button>
+                            <button onclick="deleteItem('${categoryId}', '${itemId}')" class="btn-danger" style="padding: 3px 8px; font-size: 11px;">삭제</button>
+                            <button onclick="regenerateThumbnail('${categoryId}', '${itemId}')" class="btn-secondary" style="padding: 3px 8px; font-size: 11px;">썸네일 재생성</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 애니메이션 타입 변경 처리 (단일 모드)
+        function handleAnimationTypeChange() {
+            const animationType = document.getElementById('itemAnimationType').value;
+            const framesField = document.getElementById('itemFrames');
+            const columnsField = document.getElementById('itemColumns');
+            const durationField = document.getElementById('itemDuration');
+            
+            if (animationType === 'none') {
+                // 애니메이션 없음 - 스틸 이미지
+                framesField.value = '1';
+                columnsField.value = '1';
+                durationField.value = '';
+                
+                // 필드 비활성화
+                framesField.disabled = true;
+                columnsField.disabled = true;
+                durationField.disabled = true;
+            } else if (animationType === '') {
+                // 선택 안함 - 기본값으로 복원
+                framesField.value = '';
+                columnsField.value = '16';
+                durationField.value = '';
+                
+                // 필드 활성화
+                framesField.disabled = false;
+                columnsField.disabled = false;
+                durationField.disabled = false;
+            } else {
+                // 애니메이션 있음 - 필드 활성화
+                framesField.disabled = false;
+                columnsField.disabled = false;
+                durationField.disabled = false;
+                
+                // 기본값 설정 (비어있는 경우)
+                if (!framesField.value) framesField.value = '16';
+                if (!columnsField.value) columnsField.value = '16';
+                if (!durationField.value) durationField.value = '1000';
+            }
+        }
+
+        // 일괄 애니메이션 타입 변경 처리
+        function handleBatchAnimationTypeChange() {
+            const animationType = document.getElementById('batchAnimationType').value;
+            const framesField = document.getElementById('batchFrames');
+            const columnsField = document.getElementById('batchColumns');
+            const durationField = document.getElementById('batchDuration');
+            
+            if (animationType === 'none') {
+                // 애니메이션 없음 - 스틸 이미지
+                framesField.value = '1';
+                columnsField.value = '1';
+                durationField.value = '';
+                
+                // 필드 비활성화
+                framesField.disabled = true;
+                columnsField.disabled = true;
+                durationField.disabled = true;
+            } else if (animationType === '') {
+                // 선택 안함 - 기본값으로 복원
+                framesField.value = '';
+                columnsField.value = '16';
+                durationField.value = '';
+                
+                // 필드 활성화
+                framesField.disabled = false;
+                columnsField.disabled = false;
+                durationField.disabled = false;
+            } else {
+                // 애니메이션 있음 - 필드 활성화
+                framesField.disabled = false;
+                columnsField.disabled = false;
+                durationField.disabled = false;
+                
+                // 기본값 설정 (비어있는 경우)
+                if (!framesField.value) framesField.value = '16';
+                if (!columnsField.value) columnsField.value = '16';
+                if (!durationField.value) durationField.value = '1000';
+            }
+        }
+
+        // 특정 카테고리의 스티커만 업데이트
+        async function updateCategoryItems(categoryId) {
+            try {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 전체 categories 배열에서 해당 카테고리 업데이트
+                    const categoryIndex = categories.findIndex(c => (c._id || c.id) === categoryId);
+                    if (categoryIndex !== -1) {
+                        // API 응답이 직접 카테고리 객체를 반환하므로 data를 사용
+                        categories[categoryIndex] = data;
+                        
+                        // 해당 카테고리의 스티커 그리드만 업데이트
+                        const itemsGrid = document.getElementById(`items-${categoryId}`);
+                        if (itemsGrid) {
+                            itemsGrid.innerHTML = renderItems(data.items || [], categoryId);
+                        }
+                    }
+                } else {
+                    console.error('카테고리 업데이트 실패:', data.message);
+                }
+
+            } catch (error) {
+                console.error('카테고리 업데이트 오류:', error);
+            }
+        }
+
+        // 업로드 모드 전환
+        function toggleUploadMode() {
+            isMultiMode = !isMultiMode;
+            const singleMode = document.getElementById('singleItemMode');
+            const multiMode = document.getElementById('multiItemMode');
+            const toggleBtn = document.getElementById('toggleModeBtn');
+            const submitBtn = document.getElementById('submitItemBtn');
+
+            // 단일 모드의 필수 입력 필드들
+            const singleModeRequiredFields = [
+                document.getElementById('itemName'),
+                document.getElementById('itemImage')
+            ];
+
+            if (isMultiMode) {
+                singleMode.style.display = 'none';
+                multiMode.style.display = 'block';
+                toggleBtn.textContent = '단일 업로드 모드';
+                submitBtn.textContent = '일괄 업로드';
+                
+                // 단일 모드 필드들의 required 속성 제거
+                singleModeRequiredFields.forEach(field => {
+                    if (field) {
+                        field.removeAttribute('required');
+                    }
+                });
+            } else {
+                singleMode.style.display = 'block';
+                multiMode.style.display = 'none';
+                toggleBtn.textContent = '다중 업로드 모드';
+                submitBtn.textContent = '저장';
+                
+                // 단일 모드 필드들의 required 속성 복원
+                singleModeRequiredFields.forEach(field => {
+                    if (field) {
+                        field.setAttribute('required', 'required');
+                    }
+                });
+                
+                // 선택된 파일들 초기화
+                selectedFiles = [];
+                document.getElementById('fileItemsContainer').innerHTML = '';
+            }
+        }
+
+        // 드래그 앤 드롭 설정
+        function setupDragAndDrop() {
+            const container = document.getElementById('multiUploadContainer');
+            
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                container.classList.add('dragover');
+            });
+
+            container.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                container.classList.remove('dragover');
+            });
+
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                container.classList.remove('dragover');
+                
+                const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+                addFiles(files);
+            });
+
+            container.addEventListener('click', () => {
+                document.getElementById('multiItemImages').click();
+            });
+
+            document.getElementById('multiItemImages').addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                addFiles(files);
+            });
+        }
+
+        // 파일 추가
+        function addFiles(files) {
+            files.forEach(file => {
+                const fileId = Date.now() + Math.random();
+                const fileData = {
+                    id: fileId,
+                    file: file,
+                    name: file.name.replace(/\.[^/.]+$/, ""), // 확장자 제거
+                    order: selectedFiles.length,
+                    thumbnailFile: null,
+                    // 애니메이션 설정
+                    frames: null,
+                    columns: 16,
+                    duration: null,
+                    animationType: ''
+                };
+                
+                selectedFiles.push(fileData);
+            });
+            
+            renderFileItems();
+        }
+
+        // 파일 스티커 렌더링
+        function renderFileItems() {
+            const container = document.getElementById('fileItemsContainer');
+            container.innerHTML = '';
+
+            selectedFiles.forEach(fileData => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <img src="${URL.createObjectURL(fileData.file)}" alt="미리보기" class="file-preview">
+                    <div class="file-info">
+                        <div class="form-group">
+                            <label>스티커 이름</label>
+                            <input type="text" value="${fileData.name}" onchange="updateFileName(${fileData.id}, this.value)">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>순서</label>
+                                <input type="number" value="${fileData.order}" min="0" onchange="updateFileOrder(${fileData.id}, this.value)">
+                            </div>
+                            <div class="form-group">
+                                <label>프레임 수</label>
+                                <input type="number" value="${fileData.frames || ''}" min="1" onchange="updateFileFrames(${fileData.id}, this.value)" placeholder="애니메이션인 경우" ${fileData.animationType === 'none' ? 'disabled' : ''}>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>컬럼 수</label>
+                                <input type="number" value="${fileData.columns}" min="1" max="64" onchange="updateFileColumns(${fileData.id}, this.value)" ${fileData.animationType === 'none' ? 'disabled' : ''}>
+                            </div>
+                            <div class="form-group">
+                                <label>지속시간 (ms)</label>
+                                <input type="number" value="${fileData.duration || ''}" min="1" onchange="updateFileDuration(${fileData.id}, this.value)" placeholder="애니메이션인 경우" ${fileData.animationType === 'none' ? 'disabled' : ''}>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>애니메이션 타입</label>
+                                <select onchange="updateFileAnimationType(${fileData.id}, this.value)">
+                                    <option value="">선택하세요</option>
+                                    <option value="none" ${fileData.animationType === 'none' ? 'selected' : ''}>애니메이션 없음 (스틸 이미지)</option>
+                                    <option value="loop" ${fileData.animationType === 'loop' ? 'selected' : ''}>반복 (loop)</option>
+                                    <option value="once" ${fileData.animationType === 'once' ? 'selected' : ''}>한 번 (once)</option>
+                                    <option value="pingpong" ${fileData.animationType === 'pingpong' ? 'selected' : ''}>왕복 (pingpong)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>썸네일 (선택사항)</label>
+                                <input type="file" accept="image/*" onchange="updateFileThumbnail(${fileData.id}, this.files[0])">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button type="button" class="remove-file" onclick="removeFile(${fileData.id})">삭제</button>
+                    </div>
+                `;
+                container.appendChild(fileItem);
+            });
+        }
+
+        // 파일 정보 업데이트 함수들
+        function updateFileName(fileId, name) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.name = name;
+        }
+
+        function updateFileOrder(fileId, order) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.order = parseInt(order);
+        }
+
+        function updateFileFrames(fileId, frames) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.frames = frames ? parseInt(frames) : null;
+        }
+
+        function updateFileColumns(fileId, columns) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.columns = parseInt(columns);
+        }
+
+        function updateFileDuration(fileId, duration) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.duration = duration ? parseInt(duration) : null;
+        }
+
+        function updateFileAnimationType(fileId, animationType) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) {
+                fileData.animationType = animationType;
+                
+                // 애니메이션 없음 선택 시 프레임 수와 컬럼 수 자동 설정
+                if (animationType === 'none') {
+                    fileData.frames = 1;
+                    fileData.columns = 1;
+                    fileData.duration = null;
+                } else if (animationType !== '' && animationType !== 'none') {
+                    // 애니메이션 있음 선택 시 기본값 설정
+                    if (!fileData.frames) fileData.frames = 16;
+                    if (!fileData.columns) fileData.columns = 16;
+                    if (!fileData.duration) fileData.duration = 1000;
+                }
+                
+                // 화면 다시 렌더링
+                renderFileItems();
+            }
+        }
+
+        function updateFileThumbnail(fileId, thumbnailFile) {
+            const fileData = selectedFiles.find(f => f.id === fileId);
+            if (fileData) fileData.thumbnailFile = thumbnailFile;
+        }
+
+        function removeFile(fileId) {
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+            renderFileItems();
+        }
+
+        // 일괄 설정 적용
+        function applyBatchSettings() {
+            const batchOrderStart = parseInt(document.getElementById('batchOrderStart').value) || 0;
+            const batchFrames = document.getElementById('batchFrames').value;
+            const batchColumns = parseInt(document.getElementById('batchColumns').value) || 16;
+            const batchDuration = document.getElementById('batchDuration').value;
+            const batchAnimationType = document.getElementById('batchAnimationType').value;
+
+            selectedFiles.forEach((fileData, index) => {
+                fileData.order = batchOrderStart + index;
+                fileData.columns = batchColumns;
+                if (batchFrames) fileData.frames = parseInt(batchFrames);
+                if (batchDuration) fileData.duration = parseInt(batchDuration);
+                if (batchAnimationType) fileData.animationType = batchAnimationType;
+            });
+
+            renderFileItems();
+        }
+
+        // 카테고리 생성 모달 열기
+        function openCreateCategoryModal() {
+            document.getElementById('categoryModalTitle').textContent = '📁 새 카테고리 추가';
+            document.getElementById('categoryForm').reset();
+            document.getElementById('categoryId').value = '';
+            
+            const modal = document.getElementById('categoryModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 카테고리 모달 닫기
+        function closeCategoryModal() {
+            const modal = document.getElementById('categoryModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+
+        // 스티커 생성 모달 열기
+        function openCreateItemModal(categoryId) {
+            document.getElementById('itemModalTitle').textContent = '🎮 새 스티커 추가';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemCategoryId').value = categoryId;
+            document.getElementById('itemId').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('thumbnailPreview').innerHTML = '';
+            
+            // 모드 초기화 - 단일 모드로 시작
+            isMultiMode = false;
+            document.getElementById('singleItemMode').style.display = 'block';
+            document.getElementById('multiItemMode').style.display = 'none';
+            document.getElementById('toggleModeBtn').textContent = '다중 업로드 모드';
+            document.getElementById('submitItemBtn').textContent = '저장';
+            
+            // 단일 모드 필드들의 required 속성 복원
+            const itemNameField = document.getElementById('itemName');
+            const itemImageField = document.getElementById('itemImage');
+            if (itemNameField) itemNameField.setAttribute('required', 'required');
+            if (itemImageField) itemImageField.setAttribute('required', 'required');
+            
+            selectedFiles = [];
+            document.getElementById('fileItemsContainer').innerHTML = '';
+            
+            const modal = document.getElementById('itemModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 스티커 수정 모달 열기
+        function openEditItemModal(categoryId, itemId, itemName) {
+            // 스티커 정보를 찾기 위해 카테고리에서 스티커 찾기
+            const category = categories.find(c => (c._id || c.id) === categoryId);
+            if (!category || !category.items) {
+                alert('카테고리 또는 스티커을 찾을 수 없습니다.');
+                return;
+            }
+
+            const item = category.items.find(itm => (itm._id || itm.id) === itemId);
+            if (!item) {
+                alert('스티커을 찾을 수 없습니다.');
+                return;
+            }
+
+            document.getElementById('itemModalTitle').textContent = `🎮 스티커 수정: ${itemName}`;
+            document.getElementById('itemCategoryId').value = categoryId;
+            document.getElementById('itemId').value = itemId;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemOrder').value = item.order || 0;
+            
+            // 애니메이션 정보 설정
+            if (item.animation) {
+                document.getElementById('itemFrames').value = item.animation.frames || '';
+                document.getElementById('itemColumns').value = item.animation.columns || 16;
+                document.getElementById('itemDuration').value = item.animation.duration || '';
+                document.getElementById('itemAnimationType').value = item.animation.type || '';
+            } else {
+                document.getElementById('itemFrames').value = '';
+                document.getElementById('itemColumns').value = 16;
+                document.getElementById('itemDuration').value = '';
+                document.getElementById('itemAnimationType').value = '';
+            }
+            
+            // 애니메이션 타입에 따른 필드 상태 초기화
+            setTimeout(() => {
+                handleAnimationTypeChange();
+            }, 100);
+            
+            // 수정 모드에서는 단일 모드만 사용
+            isMultiMode = false;
+            document.getElementById('singleItemMode').style.display = 'block';
+            document.getElementById('multiItemMode').style.display = 'none';
+            document.getElementById('toggleModeBtn').style.display = 'none'; // 수정 모드에서는 모드 전환 숨김
+            document.getElementById('submitItemBtn').textContent = '저장';
+            
+            // 수정 모드에서는 이미지가 필수가 아님 (기존 이미지 유지 가능)
+            const itemNameField = document.getElementById('itemName');
+            const itemImageField = document.getElementById('itemImage');
+            if (itemNameField) itemNameField.setAttribute('required', 'required');
+            if (itemImageField) itemImageField.removeAttribute('required');
+            
+            // 이미지 미리보기
+            const imagePreview = document.getElementById('imagePreview');
+            const thumbnailPreview = document.getElementById('thumbnailPreview');
+            
+            imagePreview.innerHTML = item.imageUrl ? 
+                `<img src="${item.imageUrl}" alt="현재 이미지" class="image-preview">` : 
+                '<p>현재 이미지 없음</p>';
+                
+            thumbnailPreview.innerHTML = item.thumbnailUrl ? 
+                `<img src="${item.thumbnailUrl}" alt="현재 썸네일" class="image-preview" style="max-width: 100px; max-height: 100px;"><br><small>현재 썸네일 (${item.thumbnailSource === 'user' ? '사용자 제공' : '자동 생성'})</small>` : 
+                '<p>현재 썸네일 없음</p>';
+            
+            const modal = document.getElementById('itemModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 스티커 모달 닫기
+        function closeItemModal() {
+            const modal = document.getElementById('itemModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            
+            // 모드 전환 버튼 다시 표시
+            document.getElementById('toggleModeBtn').style.display = 'inline-block';
+            
+            // 선택된 파일들 초기화
+            selectedFiles = [];
+            document.getElementById('fileItemsContainer').innerHTML = '';
+        }
+
+        // 이미지 미리보기 처리
+        document.getElementById('itemImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="이미지 미리보기" class="image-preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+
+        document.getElementById('itemThumbnail').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('thumbnailPreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="썸네일 미리보기" class="image-preview" style="max-width: 100px; max-height: 100px;">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+
+        // 진행률 업데이트
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('uploadStatus').textContent = `${current}/${total} 업로드 중...`;
+        }
+
+        // 카테고리 폼 제출
+        document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentToken) {
+                alert('관리자 토큰이 설정되지 않았습니다.');
+                return;
+            }
+
+            const categoryId = document.getElementById('categoryId').value;
+            const isEdit = !!categoryId;
+            
+            // 제출 버튼 찾기 및 비활성화
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
+            
+            try {
+                const formData = {
+                    name: document.getElementById('categoryName').value,
+                    type: document.getElementById('categoryType').value,
+                    order: parseInt(document.getElementById('categoryOrder').value) || 0
+                };
+
+                const url = isEdit ? 
+                    `/api/admin/stickers/categories/${categoryId}` : 
+                    '/api/admin/stickers/categories';
+                
+                const response = await fetch(url, {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ 카테고리가 성공적으로 ${isEdit ? '수정' : '추가'}되었습니다.`);
+                    closeCategoryModal();
+                    loadCategories();
+                } else {
+                    alert(`❌ ${isEdit ? '수정' : '추가'} 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('카테고리 저장 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+
+        // 스티커 폼 제출
+        document.getElementById('itemForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentToken) {
+                alert('관리자 토큰이 설정되지 않았습니다.');
+                return;
+            }
+
+            const categoryId = document.getElementById('itemCategoryId').value;
+            const itemId = document.getElementById('itemId').value;
+            const isEdit = !!itemId;
+
+            if (isMultiMode && !isEdit) {
+                // 다중 업로드 모드 - 파일 선택 검증
+                if (selectedFiles.length === 0) {
+                    alert('업로드할 파일을 선택해주세요.');
+                    return;
+                }
+                
+                // 파일별 이름 검증
+                for (let fileData of selectedFiles) {
+                    if (!fileData.name || fileData.name.trim() === '') {
+                        alert('모든 파일의 스티커 이름을 입력해주세요.');
+                        return;
+                    }
+                }
+                
+                await handleMultipleUpload(categoryId);
+            } else {
+                // 단일 업로드 모드 - 기존 검증 로직
+                const itemName = document.getElementById('itemName').value;
+                const imageFile = document.getElementById('itemImage').files[0];
+                
+                if (!itemName || itemName.trim() === '') {
+                    alert('스티커 이름을 입력해주세요.');
+                    return;
+                }
+                
+                if (!isEdit && !imageFile) {
+                    alert('새 스티커을 추가할 때는 이미지가 필요합니다.');
+                    return;
+                }
+                
+                await handleSingleUpload(categoryId, itemId, isEdit);
+            }
+        });
+
+        // 단일 업로드 처리
+        async function handleSingleUpload(categoryId, itemId, isEdit) {
+            const submitBtn = document.getElementById('submitItemBtn');
+            const originalText = submitBtn.textContent;
+            
+            // 버튼 비활성화 및 로딩 상태 표시
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('name', document.getElementById('itemName').value);
+                formData.append('order', document.getElementById('itemOrder').value);
+
+                // 애니메이션 정보 추가
+                const frames = document.getElementById('itemFrames').value;
+                const columns = document.getElementById('itemColumns').value;
+                const duration = document.getElementById('itemDuration').value;
+                const animationType = document.getElementById('itemAnimationType').value;
+
+                if (frames) formData.append('frames', frames);
+                if (columns) formData.append('columns', columns);
+                if (duration) formData.append('duration', duration);
+                if (animationType) formData.append('animationType', animationType);
+
+                const imageFile = document.getElementById('itemImage').files[0];
+                const thumbnailFile = document.getElementById('itemThumbnail').files[0];
+
+                if (!isEdit && !imageFile) {
+                    alert('새 스티커을 추가할 때는 이미지가 필요합니다.');
+                    return;
+                }
+
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
+
+                if (thumbnailFile) {
+                    formData.append('thumbnail', thumbnailFile);
+                }
+
+                const url = isEdit ? 
+                    `/api/admin/stickers/categories/${categoryId}/items/${itemId}` : 
+                    `/api/admin/stickers/categories/${categoryId}/items`;
+                
+                const response = await fetch(url, {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ 스티커이 성공적으로 ${isEdit ? '수정' : '추가'}되었습니다.`);
+                    closeItemModal();
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryItems(categoryId);
+                } else {
+                    alert(`❌ ${isEdit ? '수정' : '추가'} 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('스티커 저장 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        // 다중 업로드 처리
+        async function handleMultipleUpload(categoryId) {
+            if (selectedFiles.length === 0) {
+                alert('업로드할 파일을 선택해주세요.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitItemBtn');
+            const originalText = submitBtn.textContent;
+            
+            // 버튼 비활성화
+            submitBtn.disabled = true;
+            submitBtn.textContent = '업로드 중...';
+
+            const progressContainer = document.getElementById('uploadProgress');
+            progressContainer.style.display = 'block';
+            
+            let successCount = 0;
+            let failCount = 0;
+
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const fileData = selectedFiles[i];
+                    updateProgress(i + 1, selectedFiles.length);
+
+                    const formData = new FormData();
+                    formData.append('name', fileData.name);
+                    formData.append('order', fileData.order.toString());
+                    formData.append('image', fileData.file);
+                    
+                    // 애니메이션 정보 추가
+                    if (fileData.frames) formData.append('frames', fileData.frames.toString());
+                    if (fileData.columns) formData.append('columns', fileData.columns.toString());
+                    if (fileData.duration) formData.append('duration', fileData.duration.toString());
+                    if (fileData.animationType) formData.append('animationType', fileData.animationType);
+                    
+                    if (fileData.thumbnailFile) {
+                        formData.append('thumbnail', fileData.thumbnailFile);
+                    }
+
+                    try {
+                        const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${currentToken}`
+                            },
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.error(`파일 업로드 실패: ${fileData.name}`);
+                        }
+
+                    } catch (error) {
+                        failCount++;
+                        console.error(`파일 업로드 오류: ${fileData.name}`, error);
+                    }
+                }
+
+                if (successCount > 0) {
+                    alert(`✅ ${successCount}개의 스티커이 성공적으로 추가되었습니다.${failCount > 0 ? ` (실패: ${failCount}개)` : ''}`);
+                    closeItemModal();
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryItems(categoryId);
+                } else {
+                    alert(`❌ 모든 업로드가 실패했습니다.`);
+                }
+            } finally {
+                // 진행률 숨기기 및 버튼 상태 복원
+                progressContainer.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        // 카테고리 수정
+        function editCategory(categoryId) {
+            console.log('editCategory called with categoryId:', categoryId);
+            console.log('Available categories:', categories);
+            
+            // _id 또는 id 필드로 카테고리 찾기
+            const category = categories.find(c => c._id === categoryId || c.id === categoryId);
+            console.log('Found category:', category);
+            
+            if (!category) {
+                console.error('Category not found with ID:', categoryId);
+                console.error('Available category IDs:', categories.map(c => c._id || c.id));
+                alert('카테고리를 찾을 수 없습니다.');
+                return;
+            }
+
+            document.getElementById('categoryModalTitle').textContent = '📁 카테고리 수정';
+            document.getElementById('categoryId').value = category._id || category.id;
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryType').value = category.type;
+            document.getElementById('categoryOrder').value = category.order || 0;
+            
+            const modal = document.getElementById('categoryModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+        }
+
+        // 카테고리 삭제
+        async function deleteCategory(categoryId) {
+            console.log('deleteCategory called with categoryId:', categoryId);
+            
+            if (!confirm('정말로 이 카테고리를 삭제하시겠습니까? 모든 스티커도 함께 삭제됩니다.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 카테고리가 성공적으로 삭제되었습니다.');
+                    loadCategories();
+                } else {
+                    alert(`❌ 삭제 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('카테고리 삭제 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 스티커 삭제
+        async function deleteItem(categoryId, itemId) {
+            if (!confirm('정말로 이 스티커을 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items/${itemId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 스티커이 성공적으로 삭제되었습니다.');
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryItems(categoryId);
+                } else {
+                    alert(`❌ 삭제 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('스티커 삭제 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 썸네일 재생성
+        async function regenerateThumbnail(categoryId, itemId) {
+            if (!confirm('이 스티커의 썸네일을 재생성하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items/${itemId}/regenerate-thumbnail`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ 썸네일이 성공적으로 재생성되었습니다.');
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryItems(categoryId);
+                } else {
+                    alert(`❌ 썸네일 재생성 실패: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('썸네일 재생성 오류:', error);
+                alert(`❌ 네트워크 오류: ${error.message}`);
+            }
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const categoryModal = document.getElementById('categoryModal');
+            const itemModal = document.getElementById('itemModal');
+            
+            if (event.target === categoryModal) {
+                closeCategoryModal();
+            }
+            if (event.target === itemModal) {
+                closeItemModal();
+            }
+        }
+    </script>
+</body>
+
+</html> 

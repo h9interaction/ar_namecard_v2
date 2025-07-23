@@ -7,7 +7,7 @@
     "build": "npx tsc",
     "start": "NODE_ENV=production node dist/index.js",
     "start:dev": "node dist/index.js",
-    "dev": "nodemon src/index.ts",
+    "dev": "nodemon",
     "migrate:firebase": "ts-node src/scripts/firebase-migration.ts",
     "migrate:uploads": "ts-node scripts/migrate-uploads-to-firebase.ts",
     "update:db-urls": "ts-node scripts/update-db-urls-to-firebase.ts",

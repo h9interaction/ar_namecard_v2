@@ -27,7 +27,7 @@ export const initializeFirebase = (): admin.app.App => {
       console.log('⚠️ 환경 변수 부족, 서비스 계정 파일로 초기화 시도...');
       // 로컬 개발용 fallback
       try {
-        const serviceAccount = require(path.join(__dirname, '../../../hninepeople-firebase-adminsdk-fbsvc-cf8551df6d.json'));
+        const serviceAccount = require(path.join(__dirname, '../../../hninepeople-firebase-adminsdk-fbsvc-9173f3b0fc.json'));
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
           projectId: 'hninepeople'

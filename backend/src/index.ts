@@ -19,12 +19,17 @@ import adminItemRoutes from './routes/adminItemRoutes';
 import authRoutes from './routes/authRoutes';
 import firebaseAuthRoutes from './routes/firebaseAuthRoutes';
 
-dotenv.config();
+// 환경에 따라 다른 env 파일 로딩
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config(); // 배포 환경에서는 기본 .env 사용
+} else {
+  dotenv.config({ path: '.env.local' }); // 개발 환경에서는 .env.local 사용
+}
 
 const app = express();
 const PORT = parseInt(process.env['PORT'] || '3000', 10);
 const HTTPS_PORT = parseInt(process.env['HTTPS_PORT'] || '3443', 10);
-const HOST = process.env['HOST'] || '0.0.0.0';
+const HOST = '0.0.0.0'; // 명시적으로 모든 인터페이스에서 리스닝
 const ENABLE_HTTPS = process.env['ENABLE_HTTPS'] === 'true' && process.env.NODE_ENV !== 'production';
 
 // 로컬 IP 주소 찾기
@@ -85,17 +90,24 @@ connectDB();
 
 setupSwagger(app);
 
-// 단순 이미지 업로드 엔드포인트 (프론트엔드 호환성을 위해)
-import { upload } from './middleware/upload';
-app.post('/api/upload', upload.single('file'), (req, res): void => {
+// 단순 이미지 업로드 엔드포인트 (Firebase Storage 사용)
+import { upload, uploadToFirebaseStorage } from './middleware/upload';
+app.post('/api/upload', upload.single('file'), async (req, res): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ message: 'No file uploaded' });
     return;
   }
-  res.json({ 
-    url: `/${req.file.path.replace(/\\/g, '/')}`,
-    filename: req.file.filename 
-  });
+  
+  try {
+    const result = await uploadToFirebaseStorage(req.file, 'uploads/');
+    res.json({ 
+      url: result.url,
+      filename: result.path 
+    });
+  } catch (error) {
+    console.error('Upload failed:', error);
+    res.status(500).json({ message: 'Upload failed', error: (error as Error).message });
+  }
 });
 
 // Health 체크 엔드포인트 (CloudType용)
@@ -123,12 +135,40 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/characters', adminAvatarRoutes);
 app.use('/api/admin/stickers', adminItemRoutes);
 
+// 루트 경로 접근 시 API 정보 제공
+app.get('/', (_req, res) => {
+  res.json({
+    message: 'AR Namecard API Server',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      api: {
+        auth: '/api/auth',
+        users: '/api/users',
+        avatars: '/api/avatars',
+        stickers: '/api/stickers',
+        characters: '/api/characters',
+        admin: '/api/admin'
+      },
+      test: {
+        avatar: '/test/avatar',
+        item: '/test/item',
+        user: '/test/user',
+        login: '/test/login',
+        customize: '/test/customize'
+      },
+      docs: '/api-docs'
+    }
+  });
+});
+
 app.use('*', (_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// HTTP 서버 시작
-app.listen(PORT, HOST, () => {
+// HTTP 서버 시작 (IPv4 명시적 바인딩)
+const server = app.listen(PORT, HOST, () => {
   const localIp = getLocalIpAddress();
   console.log(`🚀 HTTP Server is running on:`);
   console.log(`   - Local:    http://localhost:${PORT}`);
@@ -137,6 +177,15 @@ app.listen(PORT, HOST, () => {
   if (ENABLE_HTTPS) {
     console.log(`   - HTTPS:    https://localhost:${HTTPS_PORT}`);
     console.log(`   - Network:  https://${localIp}:${HTTPS_PORT}`);
+  }
+});
+
+// IPv6 비활성화 (IPv4만 사용)
+server.on('error', (error: any) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  } else {
+    console.error('❌ Server error:', error);
   }
 });
 

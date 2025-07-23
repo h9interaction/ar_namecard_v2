@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including devDependencies for TypeScript)
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -34,7 +34,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
 
 # Create directories for uploads and SSL
-RUN mkdir -p uploads ssl public && chown -R nextjs:nodejs uploads ssl public
+RUN mkdir -p uploads/thumbnails uploads/palettes ssl public && chown -R nextjs:nodejs uploads ssl public
 
 # Switch to non-root user
 USER nextjs
@@ -44,7 +44,7 @@ EXPOSE 3000 3443
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http = require('http'); http.get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+  CMD node -e "const http = require('http'); http.get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

@@ -7,6 +7,9 @@ local_backup/
 !package.json
 !package-lock.json
 !tsconfig.json
+**/*-firebase-adminsdk-*.json
+*firebase-adminsdk*.json
+**/*-firebase-adminsdk-*.json
 .env
 .env.local
 .env.production

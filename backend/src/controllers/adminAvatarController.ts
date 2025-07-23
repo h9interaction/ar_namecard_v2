@@ -3,6 +3,7 @@ import { AvatarCategory } from '../models';
 import { validationResult } from 'express-validator';
 import { ThumbnailGenerator } from '../utils/thumbnailGenerator';
 import { PaletteImageProcessor } from '../utils/paletteImageProcessor';
+import { uploadToFirebase } from '../config/firebase-storage';
 import path from 'path';
 import fs from 'fs/promises'; // Added fs import
 
@@ -400,16 +401,24 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
             
             // 중간머리 처리 (필수)
             const middleHairFile = filesByName[middleHairKey]![0];
-            const middleImagePath = path.join('uploads', `hair_middle_${index}_${Date.now()}_${middleHairFile.originalname}`);
-            await fs.copyFile(middleHairFile.path, middleImagePath);
-            resourceImages.hairMiddleImageUrl = `/${middleImagePath}`;
+            const middleHairBuffer = await fs.readFile(middleHairFile.path);
+            const middleHairUploadFile: Express.Multer.File = {
+              ...middleHairFile,
+              buffer: middleHairBuffer
+            };
+            const middleResult = await uploadToFirebase(middleHairUploadFile, 'uploads/hair/');
+            resourceImages.hairMiddleImageUrl = middleResult.url;
 
             // 뒷머리 처리 (선택사항)
             if (filesByName[backHairKey] && filesByName[backHairKey].length > 0) {
               const backHairFile = filesByName[backHairKey][0];
-              const backImagePath = path.join('uploads', `hair_back_${index}_${Date.now()}_${backHairFile.originalname}`);
-              await fs.copyFile(backHairFile.path, backImagePath);
-              resourceImages.hairBackImageUrl = `/${backImagePath}`;
+              const backHairBuffer = await fs.readFile(backHairFile.path);
+              const backHairUploadFile: Express.Multer.File = {
+                ...backHairFile,
+                buffer: backHairBuffer
+              };
+              const backResult = await uploadToFirebase(backHairUploadFile, 'uploads/hair/');
+              resourceImages.hairBackImageUrl = backResult.url;
             }
 
           } catch (error) {
@@ -614,17 +623,25 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
               // 중간머리 처리 (필수)
               if (filesByName[middleHairKey] && filesByName[middleHairKey].length > 0) {
                 const middleHairFile = filesByName[middleHairKey][0];
-                const middleImagePath = path.join('uploads', `hair_middle_${index}_${Date.now()}_${middleHairFile.originalname}`);
-                await fs.copyFile(middleHairFile.path, middleImagePath);
-                resourceImages.hairMiddleImageUrl = `/${middleImagePath}`;
+                const middleHairBuffer = await fs.readFile(middleHairFile.path);
+                const middleHairUploadFile: Express.Multer.File = {
+                  ...middleHairFile,
+                  buffer: middleHairBuffer
+                };
+                const middleResult = await uploadToFirebase(middleHairUploadFile, 'uploads/hair/');
+                resourceImages.hairMiddleImageUrl = middleResult.url;
               }
 
               // 뒷머리 처리 (선택사항)
               if (filesByName[backHairKey] && filesByName[backHairKey].length > 0) {
                 const backHairFile = filesByName[backHairKey][0];
-                const backImagePath = path.join('uploads', `hair_back_${index}_${Date.now()}_${backHairFile.originalname}`);
-                await fs.copyFile(backHairFile.path, backImagePath);
-                resourceImages.hairBackImageUrl = `/${backImagePath}`;
+                const backHairBuffer = await fs.readFile(backHairFile.path);
+                const backHairUploadFile: Express.Multer.File = {
+                  ...backHairFile,
+                  buffer: backHairBuffer
+                };
+                const backResult = await uploadToFirebase(backHairUploadFile, 'uploads/hair/');
+                resourceImages.hairBackImageUrl = backResult.url;
               }
 
             } catch (error) {

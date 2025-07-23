@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ItemCategory } from '../models';
 import { validationResult } from 'express-validator';
 import { ThumbnailGenerator } from '../utils/thumbnailGenerator';
+import { uploadToFirebase } from '../config/firebase-storage';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -233,7 +234,15 @@ export const addItem = async (req: AuthRequest, res: Response): Promise<void> =>
       res.status(400).json({ message: 'Image file is required' });
       return;
     }
-    const imageUrl = `/uploads/${imageFile.filename}`;
+
+    // Firebase Storage에 이미지 업로드
+    const imageBuffer = await fs.readFile(imageFile.path);
+    const uploadFile: Express.Multer.File = {
+      ...imageFile,
+      buffer: imageBuffer
+    };
+    const imageResult = await uploadToFirebase(uploadFile, 'uploads/items/');
+    const imageUrl = imageResult.url;
 
     // 애니메이션 정보 처리
     let animation = undefined;
@@ -387,12 +396,19 @@ export const updateItem = async (req: AuthRequest, res: Response): Promise<void>
     if (files && files.image && files.image.length > 0) {
       const imageFile = files.image[0];
       if (imageFile) {
-        // 기존 이미지 파일 삭제
+        // 기존 이미지 파일 삭제 (로컬 파일만, Firebase는 자동 관리됨)
         if (oldImagePath) {
           await deleteFileIfExists(oldImagePath);
         }
 
-        item.imageUrl = `/uploads/${imageFile.filename}`;
+        // Firebase Storage에 새 이미지 업로드
+        const imageBuffer = await fs.readFile(imageFile.path);
+        const uploadFile: Express.Multer.File = {
+          ...imageFile,
+          buffer: imageBuffer
+        };
+        const imageResult = await uploadToFirebase(uploadFile, 'uploads/items/');
+        item.imageUrl = imageResult.url;
         
         if (item.animation) {
           item.animationUrl = item.imageUrl;

@@ -1,6 +1,8 @@
 // import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+import { uploadToFirebase, getBucket } from '../config/firebase-storage';
+import { Readable } from 'stream';
 
 export interface ThumbnailResult {
   thumbnailPath: string;
@@ -11,6 +13,89 @@ export interface ThumbnailResult {
 export class ThumbnailGenerator {
   private static readonly THUMBNAIL_SIZE = 300;
   private static readonly THUMBNAIL_DIR = 'uploads/thumbnails';
+
+  /**
+   * Firebase Storage URL인지 확인
+   */
+  private static isFirebaseUrl(url: string): boolean {
+    return url.startsWith('https://storage.googleapis.com/') || url.startsWith('gs://');
+  }
+
+  /**
+   * 이미지를 로컬 임시 파일로 다운로드 (Firebase Storage URL인 경우)
+   */
+  private static async downloadImageToTemp(imageUrl: string): Promise<string> {
+    if (!this.isFirebaseUrl(imageUrl)) {
+      // 로컬 파일 경로인 경우 그대로 반환
+      return imageUrl.startsWith('/') ? path.join(process.cwd(), imageUrl.slice(1)) : imageUrl;
+    }
+
+    // Firebase Storage에서 다운로드
+    const tempFilePath = path.join(process.cwd(), 'temp', `temp_${Date.now()}_${Math.random()}.jpg`);
+    
+    try {
+      // temp 디렉토리 생성
+      await fs.mkdir(path.dirname(tempFilePath), { recursive: true });
+      
+      // Firebase Storage URL에서 파일 경로 추출
+      const url = new URL(imageUrl);
+      const filePath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] || '');
+      
+      if (!filePath) {
+        throw new Error('Invalid Firebase Storage URL');
+      }
+
+      const bucket = getBucket();
+      const file = bucket.file(filePath);
+      
+      // 파일 다운로드
+      const [fileBuffer] = await file.download();
+      await fs.writeFile(tempFilePath, fileBuffer);
+      
+      return tempFilePath;
+    } catch (error) {
+      console.error('Error downloading image from Firebase:', error);
+      throw new Error(`Failed to download image: ${error}`);
+    }
+  }
+
+  /**
+   * 썸네일 이미지를 Firebase Storage에 업로드
+   */
+  private static async uploadThumbnailToFirebase(localThumbnailPath: string, filename: string): Promise<string> {
+    try {
+      const thumbnailBuffer = await fs.readFile(localThumbnailPath);
+      
+      // Express.Multer.File 형태로 변환
+      const uploadFile: Express.Multer.File = {
+        fieldname: 'thumbnail',
+        originalname: filename,
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        buffer: thumbnailBuffer,
+        size: thumbnailBuffer.length,
+        destination: '',
+        filename: filename,
+        path: localThumbnailPath,
+        stream: null as any,
+      };
+
+      // Firebase Storage에 업로드
+      const result = await uploadToFirebase(uploadFile, 'uploads/thumbnails/');
+      
+      // 임시 파일 삭제
+      try {
+        await fs.unlink(localThumbnailPath);
+      } catch (error) {
+        console.warn('Failed to delete temporary thumbnail file:', error);
+      }
+      
+      return result.url;
+    } catch (error) {
+      console.error('Error uploading thumbnail to Firebase:', error);
+      throw new Error(`Failed to upload thumbnail: ${error}`);
+    }
+  }
 
   static async ensureThumbnailDir(): Promise<void> {
     try {
@@ -31,30 +116,61 @@ export class ThumbnailGenerator {
 
     const originalName = filename || path.basename(originalImagePath, path.extname(originalImagePath));
     const thumbnailFilename = `thumb_${originalName}_${Date.now()}.jpg`;
-    const thumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
+    const localThumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
+
+    let tempImagePath: string | null = null;
 
     try {
-      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
-      console.log(`🔍 썸네일 생성 시도:`, { originalImagePath, thumbnailPath });
+      console.log(`🔍 썸네일 생성 시도:`, { originalImagePath, thumbnailFilename });
+      
+      // 이미지 다운로드 (Firebase Storage URL인 경우)
+      const localImagePath = await this.downloadImageToTemp(originalImagePath);
+      if (this.isFirebaseUrl(originalImagePath)) {
+        tempImagePath = localImagePath; // 임시 파일이므로 나중에 삭제
+      }
       
       // 원본 파일 존재 확인
       try {
-        await fs.access(originalImagePath);
+        await fs.access(localImagePath);
       } catch (error) {
-        throw new Error(`Original image not found: ${originalImagePath}`);
+        throw new Error(`Original image not found: ${localImagePath}`);
       }
       
-      // 원본 파일을 썸네일 디렉토리로 복사
-      await fs.copyFile(originalImagePath, thumbnailPath);
-      console.log(`✅ 썸네일 생성 완료:`, thumbnailPath);
+      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
+      await fs.copyFile(localImagePath, localThumbnailPath);
+      console.log(`✅ 로컬 썸네일 생성 완료:`, localThumbnailPath);
+      
+      // Firebase Storage에 업로드
+      const firebaseUrl = await this.uploadThumbnailToFirebase(localThumbnailPath, thumbnailFilename);
+      console.log(`✅ Firebase 썸네일 업로드 완료:`, firebaseUrl);
+      
+      // 임시 이미지 파일 삭제
+      if (tempImagePath) {
+        try {
+          await fs.unlink(tempImagePath);
+        } catch (error) {
+          console.warn('Failed to delete temporary image file:', error);
+        }
+      }
       
       return {
-        thumbnailPath,
-        thumbnailUrl: `/uploads/thumbnails/${thumbnailFilename}`,
+        thumbnailPath: localThumbnailPath, // 로컬 경로 (호환성 유지)
+        thumbnailUrl: firebaseUrl, // Firebase Storage URL
         source: 'auto'
       };
     } catch (error) {
       console.error(`❌ 썸네일 생성 실패:`, error);
+      
+      // 임시 파일들 정리
+      if (tempImagePath) {
+        try {
+          await fs.unlink(tempImagePath);
+        } catch {}
+      }
+      try {
+        await fs.unlink(localThumbnailPath);
+      } catch {}
+      
       throw new Error(`Failed to generate thumbnail: ${error}`);
     }
   }
@@ -72,11 +188,21 @@ export class ThumbnailGenerator {
 
     const originalName = filename || path.basename(spriteImagePath, path.extname(spriteImagePath));
     const thumbnailFilename = `thumb_sprite_${originalName}_${Date.now()}.jpg`;
-    const thumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
+    const localThumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
+
+    let tempImagePath: string | null = null;
 
     try {
+      console.log(`🔍 스프라이트 썸네일 생성 시도:`, { spriteImagePath, thumbnailFilename });
+      
+      // 이미지 다운로드 (Firebase Storage URL인 경우)
+      const localImagePath = await this.downloadImageToTemp(spriteImagePath);
+      if (this.isFirebaseUrl(spriteImagePath)) {
+        tempImagePath = localImagePath; // 임시 파일이므로 나중에 삭제
+      }
+
       // 스프라이트 이미지 정보 가져오기
-      // const { width, height } = await sharp(spriteImagePath).metadata();
+      // const { width, height } = await sharp(localImagePath).metadata();
       const width = 800, height = 600; // Temporary values
       
       if (!width || !height) {
@@ -98,16 +224,42 @@ export class ThumbnailGenerator {
       console.log(`Sprite info: ${width}x${height}, columns: ${columns}, rows: ${rows || 'auto'}`);
       console.log(`Frame size: ${frameWidth}x${frameHeight}`);
 
-      // 첫 번째 프레임 추출
-      // Temporary: Skip sharp processing
-      // await sharp(spriteImagePath)...
+      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
+      // 실제로는 Sharp를 사용해서 첫 번째 프레임만 추출해야 함
+      await fs.copyFile(localImagePath, localThumbnailPath);
+      console.log(`✅ 로컬 스프라이트 썸네일 생성 완료:`, localThumbnailPath);
+
+      // Firebase Storage에 업로드
+      const firebaseUrl = await this.uploadThumbnailToFirebase(localThumbnailPath, thumbnailFilename);
+      console.log(`✅ Firebase 스프라이트 썸네일 업로드 완료:`, firebaseUrl);
+
+      // 임시 이미지 파일 삭제
+      if (tempImagePath) {
+        try {
+          await fs.unlink(tempImagePath);
+        } catch (error) {
+          console.warn('Failed to delete temporary sprite image file:', error);
+        }
+      }
 
       return {
-        thumbnailPath,
-        thumbnailUrl: `/uploads/thumbnails/${thumbnailFilename}`,
+        thumbnailPath: localThumbnailPath, // 로컬 경로 (호환성 유지)
+        thumbnailUrl: firebaseUrl, // Firebase Storage URL
         source: 'auto'
       };
     } catch (error) {
+      console.error(`❌ 스프라이트 썸네일 생성 실패:`, error);
+      
+      // 임시 파일들 정리
+      if (tempImagePath) {
+        try {
+          await fs.unlink(tempImagePath);
+        } catch {}
+      }
+      try {
+        await fs.unlink(localThumbnailPath);
+      } catch {}
+      
       throw new Error(`Failed to generate thumbnail from sprite: ${error}`);
     }
   }
@@ -123,19 +275,40 @@ export class ThumbnailGenerator {
 
     const originalName = filename || path.basename(thumbnailImagePath, path.extname(thumbnailImagePath));
     const thumbnailFilename = `thumb_user_${originalName}_${Date.now()}.jpg`;
-    const thumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
+    const localThumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
 
     try {
-      // 사용자 업로드 이미지를 300x300으로 리사이징
-      // Temporary: Skip sharp processing
-      // await sharp(thumbnailImagePath)...
+      console.log(`🔍 사용자 썸네일 처리 시도:`, { thumbnailImagePath, thumbnailFilename });
+      
+      // 원본 파일 존재 확인
+      try {
+        await fs.access(thumbnailImagePath);
+      } catch (error) {
+        throw new Error(`Thumbnail image not found: ${thumbnailImagePath}`);
+      }
+
+      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
+      // 실제로는 Sharp를 사용해서 300x300으로 리사이징해야 함
+      await fs.copyFile(thumbnailImagePath, localThumbnailPath);
+      console.log(`✅ 로컬 사용자 썸네일 생성 완료:`, localThumbnailPath);
+
+      // Firebase Storage에 업로드
+      const firebaseUrl = await this.uploadThumbnailToFirebase(localThumbnailPath, thumbnailFilename);
+      console.log(`✅ Firebase 사용자 썸네일 업로드 완료:`, firebaseUrl);
 
       return {
-        thumbnailPath,
-        thumbnailUrl: `/uploads/thumbnails/${thumbnailFilename}`,
+        thumbnailPath: localThumbnailPath, // 로컬 경로 (호환성 유지)
+        thumbnailUrl: firebaseUrl, // Firebase Storage URL
         source: 'user'
       };
     } catch (error) {
+      console.error(`❌ 사용자 썸네일 처리 실패:`, error);
+      
+      // 임시 파일 정리
+      try {
+        await fs.unlink(localThumbnailPath);
+      } catch {}
+      
       throw new Error(`Failed to process user thumbnail: ${error}`);
     }
   }

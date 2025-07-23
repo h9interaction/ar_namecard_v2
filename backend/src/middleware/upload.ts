@@ -1,16 +1,10 @@
 import multer from 'multer';
 import path from 'path';
 import { Request } from 'express';
+import { uploadToFirebase } from '../config/firebase-storage';
 
-const storage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
-    cb(null, 'uploads/');
-  },
-  filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// 메모리 저장으로 변경
+const storage = multer.memoryStorage();
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
@@ -31,6 +25,14 @@ export const upload = multer({
   },
   fileFilter: fileFilter
 });
+
+// Firebase 업로드 함수
+export const uploadToFirebaseStorage = async (
+  file: Express.Multer.File,
+  folder: string = 'uploads/'
+): Promise<{ url: string; path: string }> => {
+  return await uploadToFirebase(file, folder);
+};
 
 export const uploadSingle = (fieldName: string) => upload.single(fieldName);
 export const uploadMultiple = (fieldName: string, maxCount: number) => upload.array(fieldName, maxCount);

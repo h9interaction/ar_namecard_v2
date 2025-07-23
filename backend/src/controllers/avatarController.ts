@@ -34,9 +34,21 @@ export const getAvatarByUserId = async (req: Request, res: Response): Promise<vo
     // avatarSelections 상세 정보 가져오기
     const avatarSelectionsWithDetails: any = {};
     if (avatar.avatarSelections) {
-      for (const [categoryType, optionId] of Object.entries(avatar.avatarSelections)) {
+      for (const [categoryType, selection] of Object.entries(avatar.avatarSelections)) {
         const category = await AvatarCategory.findOne({ type: categoryType });
         if (category) {
+          // 새로운 데이터 구조와 기존 데이터 구조 모두 지원
+          const optionId = typeof selection === 'object' && selection !== null ? 
+            (selection as any).optionId : selection;
+          const colorIndex = typeof selection === 'object' && selection !== null ? 
+            ((selection as any).colorIndex || 0) : 0;
+            
+          console.log(`🔍 아바타 조회 - ${categoryType}:`, {
+            selection,
+            extractedOptionId: optionId,
+            colorIndex
+          });
+            
           const option = category.options.find((opt: any) => opt._id.toString() === optionId);
           if (option) {
             // 기존 데이터 호환성을 위한 마이그레이션 로직
@@ -59,6 +71,8 @@ export const getAvatarByUserId = async (req: Request, res: Response): Promise<vo
             
             avatarSelectionsWithDetails[categoryType] = {
               id: optionId,
+              optionId: optionId,      // 새로운 구조 지원
+              colorIndex: colorIndex,   // 컬러 인덱스 추가
               name: option.name,
               imageUrl: option.imageUrl,
               thumbnailUrl: option.thumbnailUrl,
@@ -186,7 +200,20 @@ export const updateAvatar = async (req: Request, res: Response): Promise<void> =
 
 export const uploadAvatarImage = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('📤 아바타 이미지 업로드 시작:', {
+      hasFile: !!req.file,
+      userId: req.body?.userId,
+      fileSize: req.file?.size,
+      mimetype: req.file?.mimetype,
+      hasBuffer: !!req.file?.buffer,
+      hasPath: !!req.file?.path,
+      filePath: req.file?.path,
+      fieldname: req.file?.fieldname,
+      originalname: req.file?.originalname
+    });
+
     if (!req.file) {
+      console.error('❌ 파일이 없음');
       res.status(400).json({ error: 'No file uploaded' });
       return;
     }
@@ -194,17 +221,32 @@ export const uploadAvatarImage = async (req: Request, res: Response): Promise<vo
     const { userId } = req.body;
     
     if (!userId) {
+      console.error('❌ 사용자 ID가 없음');
       res.status(400).json({ error: 'User ID is required' });
       return;
     }
     
-    const avatarImgUrl = `/uploads/${req.file.filename}`;
+    if (!req.file.buffer) {
+      console.error('❌ 파일 버퍼가 없음');
+      res.status(400).json({ error: 'File buffer is missing' });
+      return;
+    }
     
+    // Firebase Storage를 사용하여 이미지 업로드
+    const { uploadToFirebase } = await import('../config/firebase-storage');
+    
+    console.log('🔄 Firebase Storage 업로드 시작...');
+    const uploadResult = await uploadToFirebase(req.file, 'uploads/avatars/');
+    const avatarImgUrl = uploadResult.url;
+    console.log('✅ Firebase Storage 업로드 완료:', avatarImgUrl);
+    
+    console.log('🔄 데이터베이스 업데이트 시작...');
     const avatar = await UserCustomization.findOneAndUpdate(
       { id: userId },
       { avatarImgUrl },
       { new: true, runValidators: true, upsert: true }
     );
+    console.log('✅ 데이터베이스 업데이트 완료');
     
     res.json({ 
       message: 'Avatar image uploaded successfully',
@@ -212,8 +254,11 @@ export const uploadAvatarImage = async (req: Request, res: Response): Promise<vo
       avatar 
     });
   } catch (error) {
-    console.error('Error uploading avatar image:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ 아바타 이미지 업로드 오류:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 

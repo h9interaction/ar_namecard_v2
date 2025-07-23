@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS 테스트 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .network-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 CORS 테스트 페이지</h1>
+        
+        <div class="network-info">
+            <h3>📍 현재 접속 정보</h3>
+            <p><strong>현재 URL:</strong> <span id="currentUrl"></span></p>
+            <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 서버 설정</h3>
+            <label>API 서버 주소:</label>
+            <input type="text" id="serverUrl" value="http://192.168.2.20:3000" placeholder="http://ip:port">
+            <button onclick="updateServerUrl()">설정 적용</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🏥 기본 연결 테스트</h3>
+            <button onclick="testBasicConnection()">연결 테스트</button>
+            <div id="connectionResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 인증 테스트</h3>
+            <button onclick="testAuthEndpoint()">인증 엔드포인트 테스트</button>
+            <div id="authResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>👤 사용자 API 테스트</h3>
+            <button onclick="testUserAPI()">사용자 목록 조회</button>
+            <div id="userResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎭 아바타 API 테스트</h3>
+            <button onclick="testAvatarAPI()">아바타 카테고리 조회</button>
+            <div id="avatarResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 아이템 API 테스트</h3>
+            <button onclick="testItemAPI()">아이템 카테고리 조회</button>
+            <div id="itemResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 전체 테스트</h3>
+            <button onclick="runAllTests()">모든 테스트 실행</button>
+            <div id="allTestsResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let serverUrl = 'http://192.168.2.20:3000';
+
+        // 페이지 로드 시 현재 정보 표시
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('currentUrl').textContent = window.location.href;
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+        });
+
+        function updateServerUrl() {
+            const input = document.getElementById('serverUrl');
+            serverUrl = input.value.replace(/\/$/, ''); // 끝의 슬래시 제거
+            showResult('connectionResult', `서버 주소가 ${serverUrl}로 설정되었습니다.`, 'info');
+        }
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+
+        async function testBasicConnection() {
+            showResult('connectionResult', '연결 테스트 중...', 'info');
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('connectionResult', 
+                        `✅ 연결 성공!\n상태: ${response.status}\n응답: ${JSON.stringify(data, null, 2)}`, 
+                        'success');
+                } else {
+                    showResult('connectionResult', 
+                        `⚠️ 서버 응답 오류\n상태: ${response.status}\n메시지: ${response.statusText}`, 
+                        'error');
+                }
+            } catch (error) {
+                showResult('connectionResult', 
+                    `❌ 연결 실패\n오류: ${error.message}\n\n가능한 원인:\n- 서버가 실행되지 않음\n- 네트워크 연결 문제\n- CORS 정책 차단`, 
+                    'error');
+            }
+        }
+
+        async function testAuthEndpoint() {
+            showResult('authResult', '인증 테스트 중...', 'info');
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/auth/test`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.text();
+                showResult('authResult', 
+                    `상태: ${response.status}\n응답: ${data}`, 
+                    response.ok ? 'success' : 'error');
+            } catch (error) {
+                showResult('authResult', 
+                    `❌ 인증 테스트 실패\n오류: ${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function testUserAPI() {
+            showResult('userResult', '사용자 API 테스트 중...', 'info');
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/users`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('userResult', 
+                        `✅ 사용자 API 성공!\n사용자 수: ${data.length || 0}\n응답: ${JSON.stringify(data.slice(0, 2), null, 2)}${data.length > 2 ? '\n...' : ''}`, 
+                        'success');
+                } else {
+                    const errorData = await response.text();
+                    showResult('userResult', 
+                        `⚠️ 사용자 API 오류\n상태: ${response.status}\n응답: ${errorData}`, 
+                        'error');
+                }
+            } catch (error) {
+                showResult('userResult', 
+                    `❌ 사용자 API 실패\n오류: ${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function testAvatarAPI() {
+            showResult('avatarResult', '아바타 API 테스트 중...', 'info');
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/avatars/categories`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('avatarResult', 
+                        `✅ 아바타 API 성공!\n카테고리 수: ${data.length || 0}\n응답: ${JSON.stringify(data.slice(0, 2), null, 2)}${data.length > 2 ? '\n...' : ''}`, 
+                        'success');
+                } else {
+                    const errorData = await response.text();
+                    showResult('avatarResult', 
+                        `⚠️ 아바타 API 오류\n상태: ${response.status}\n응답: ${errorData}`, 
+                        'error');
+                }
+            } catch (error) {
+                showResult('avatarResult', 
+                    `❌ 아바타 API 실패\n오류: ${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function testItemAPI() {
+            showResult('itemResult', '아이템 API 테스트 중...', 'info');
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/stickers`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('itemResult', 
+                        `✅ 아이템 API 성공!\n카테고리 수: ${data.length || 0}\n응답: ${JSON.stringify(data.slice(0, 2), null, 2)}${data.length > 2 ? '\n...' : ''}`, 
+                        'success');
+                } else {
+                    const errorData = await response.text();
+                    showResult('itemResult', 
+                        `⚠️ 아이템 API 오류\n상태: ${response.status}\n응답: ${errorData}`, 
+                        'error');
+                }
+            } catch (error) {
+                showResult('itemResult', 
+                    `❌ 아이템 API 실패\n오류: ${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function runAllTests() {
+            showResult('allTestsResult', '전체 테스트 실행 중...', 'info');
+            
+            const tests = [
+                { name: '기본 연결', func: testBasicConnection },
+                { name: '인증', func: testAuthEndpoint },
+                { name: '사용자 API', func: testUserAPI },
+                { name: '아바타 API', func: testAvatarAPI },
+                { name: '아이템 API', func: testItemAPI }
+            ];
+            
+            let results = [];
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    results.push(`✅ ${test.name}: 성공`);
+                } catch (error) {
+                    results.push(`❌ ${test.name}: 실패 - ${error.message}`);
+                }
+                
+                // 각 테스트 간 잠시 대기
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            showResult('allTestsResult', 
+                `전체 테스트 완료\n\n${results.join('\n')}`, 
+                'info');
+        }
+    </script>
+</body>
+</html> 

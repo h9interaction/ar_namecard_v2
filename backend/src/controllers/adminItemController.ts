@@ -235,13 +235,13 @@ export const addItem = async (req: AuthRequest, res: Response): Promise<void> =>
       return;
     }
 
-    // Firebase Storage에 이미지 업로드
-    const imageBuffer = await fs.readFile(imageFile.path);
-    const uploadFile: Express.Multer.File = {
-      ...imageFile,
-      buffer: imageBuffer
-    };
-    const imageResult = await uploadToFirebase(uploadFile, 'uploads/items/');
+    // Firebase Storage에 이미지 업로드 (메모리에서 직접 사용)
+    if (!imageFile.buffer) {
+      res.status(400).json({ message: 'Image file buffer is missing' });
+      return;
+    }
+    
+    const imageResult = await uploadToFirebase(imageFile, 'uploads/items/');
     const imageUrl = imageResult.url;
 
     // 애니메이션 정보 처리
@@ -269,17 +269,20 @@ export const addItem = async (req: AuthRequest, res: Response): Promise<void> =>
         res.status(400).json({ message: 'Thumbnail file is invalid' });
         return;
       }
-      const thumbnailResult = await ThumbnailGenerator.processUserThumbnail(
-        thumbnailFile.path,
-        thumbnailFile.filename
-      );
-      thumbnailUrl = thumbnailResult.thumbnailUrl;
+      // Firebase Storage에 썸네일 직접 업로드
+      if (!thumbnailFile.buffer) {
+        res.status(400).json({ message: 'Thumbnail file buffer is missing' });
+        return;
+      }
+      
+      const thumbnailUploadResult = await uploadToFirebase(thumbnailFile, 'uploads/thumbnails/');
+      thumbnailUrl = thumbnailUploadResult.url;
       thumbnailSource = 'user';
     } else if (animation) {
-      // 스프라이트 이미지에서 첫 번째 프레임 추출
+      // 스프라이트 이미지에서 첫 번째 프레임 추출 (Firebase Storage URL 사용)
       const rows = Math.ceil(animation.frames / animation.columns);
       const thumbnailResult = await ThumbnailGenerator.generateThumbnailFromSprite(
-        imageFile.path,
+        imageUrl, // Firebase Storage URL 사용
         animation.columns,
         rows,
         imageFile.filename
@@ -287,9 +290,9 @@ export const addItem = async (req: AuthRequest, res: Response): Promise<void> =>
       thumbnailUrl = thumbnailResult.thumbnailUrl;
       thumbnailSource = 'auto';
     } else {
-      // 일반 이미지에서 썸네일 생성
+      // 일반 이미지에서 썸네일 생성 (Firebase Storage URL 사용)
       const thumbnailResult = await ThumbnailGenerator.generateThumbnail(
-        imageFile.path,
+        imageUrl,
         imageFile.filename
       );
       thumbnailUrl = thumbnailResult.thumbnailUrl;
@@ -396,18 +399,16 @@ export const updateItem = async (req: AuthRequest, res: Response): Promise<void>
     if (files && files.image && files.image.length > 0) {
       const imageFile = files.image[0];
       if (imageFile) {
-        // 기존 이미지 파일 삭제 (로컬 파일만, Firebase는 자동 관리됨)
-        if (oldImagePath) {
-          await deleteFileIfExists(oldImagePath);
-        }
+        // Firebase Storage 사용 시 로컬 파일 삭제 불필요 (URL이므로)
+        // 기존 Firebase Storage 파일은 자동으로 관리됨
 
-        // Firebase Storage에 새 이미지 업로드
-        const imageBuffer = await fs.readFile(imageFile.path);
-        const uploadFile: Express.Multer.File = {
-          ...imageFile,
-          buffer: imageBuffer
-        };
-        const imageResult = await uploadToFirebase(uploadFile, 'uploads/items/');
+        // Firebase Storage에 새 이미지 업로드 (메모리에서 직접 사용)
+        if (!imageFile.buffer) {
+          res.status(400).json({ message: 'Image file buffer is missing' });
+          return;
+        }
+        
+        const imageResult = await uploadToFirebase(imageFile, 'uploads/items/');
         item.imageUrl = imageResult.url;
         
         if (item.animation) {
@@ -416,23 +417,20 @@ export const updateItem = async (req: AuthRequest, res: Response): Promise<void>
 
         // 기존 썸네일이 자동 생성된 것이면 새로 생성
         if (item.thumbnailSource === 'auto') {
-          // 기존 썸네일 삭제
-          if (oldThumbnailPath) {
-            await deleteFileIfExists(oldThumbnailPath);
-          }
+          // Firebase Storage 사용 시 썸네일도 URL이므로 로컬 삭제 불필요
 
           let thumbnailResult;
           if (item.animation) {
             const rows = Math.ceil(item.animation.frames / item.animation.columns);
             thumbnailResult = await ThumbnailGenerator.generateThumbnailFromSprite(
-              imageFile.path,
+              item.imageUrl, // Firebase Storage URL 사용
               item.animation.columns,
               rows,
               imageFile.filename
             );
           } else {
             thumbnailResult = await ThumbnailGenerator.generateThumbnail(
-              imageFile.path,
+              item.imageUrl, // Firebase Storage URL 사용
               imageFile.filename
             );
           }
@@ -445,16 +443,16 @@ export const updateItem = async (req: AuthRequest, res: Response): Promise<void>
     if (files && files.thumbnail && files.thumbnail.length > 0) {
       const thumbnailFile = files.thumbnail[0];
       if (thumbnailFile) {
-        // 기존 썸네일 파일 삭제
-        if (oldThumbnailPath) {
-          await deleteFileIfExists(oldThumbnailPath);
-        }
+        // Firebase Storage 사용 시 썸네일 파일도 URL이므로 로컬 삭제 불필요
 
-        const thumbnailResult = await ThumbnailGenerator.processUserThumbnail(
-          thumbnailFile.path,
-          thumbnailFile.filename
-        );
-        item.thumbnailUrl = thumbnailResult.thumbnailUrl;
+        // Firebase Storage에 썸네일 업로드 후 처리
+        if (!thumbnailFile.buffer) {
+          res.status(400).json({ message: 'Thumbnail file buffer is missing' });
+          return;
+        }
+        
+        const thumbnailUploadResult = await uploadToFirebase(thumbnailFile, 'uploads/thumbnails/');
+        item.thumbnailUrl = thumbnailUploadResult.url;
         item.thumbnailSource = 'user';
       }
     }

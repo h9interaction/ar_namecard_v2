@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import { ThumbnailGenerator } from '../utils/thumbnailGenerator';
 import { PaletteImageProcessor } from '../utils/paletteImageProcessor';
 import { uploadToFirebase } from '../config/firebase-storage';
+import { uploadToFirebaseStorage } from '../middleware/upload';
 import path from 'path';
 import fs from 'fs/promises'; // Added fs import
 
@@ -375,11 +376,10 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
         // 해당 인덱스에 팔레트 이미지가 있으면 처리
         if (paletteFiles[index]) {
           try {
-            const paletteResult = await PaletteImageProcessor.processPaletteImage(
-              paletteFiles[index].path,
-              paletteFiles[index].filename
-            );
-            paletteImageUrl = paletteResult.paletteImageUrl;
+            // Firebase Storage에 팔레트 이미지 업로드
+            const uploadResult = await uploadToFirebaseStorage(paletteFiles[index], 'palettes/');
+            paletteImageUrl = uploadResult.url;
+            console.log(`✅ 팔레트 이미지 업로드 완료 (색상 옵션 ${index}):`, uploadResult.url);
           } catch (error) {
             console.error(`Error processing palette image for color option ${index}:`, error);
           }
@@ -401,23 +401,19 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
             
             // 중간머리 처리 (필수)
             const middleHairFile = filesByName[middleHairKey]![0];
-            const middleHairBuffer = await fs.readFile(middleHairFile.path);
-            const middleHairUploadFile: Express.Multer.File = {
-              ...middleHairFile,
-              buffer: middleHairBuffer
-            };
-            const middleResult = await uploadToFirebase(middleHairUploadFile, 'uploads/hair/');
+            if (!middleHairFile.buffer) {
+              throw new Error('Middle hair file buffer is missing');
+            }
+            const middleResult = await uploadToFirebase(middleHairFile, 'uploads/hair/');
             resourceImages.hairMiddleImageUrl = middleResult.url;
 
             // 뒷머리 처리 (선택사항)
             if (filesByName[backHairKey] && filesByName[backHairKey].length > 0) {
               const backHairFile = filesByName[backHairKey][0];
-              const backHairBuffer = await fs.readFile(backHairFile.path);
-              const backHairUploadFile: Express.Multer.File = {
-                ...backHairFile,
-                buffer: backHairBuffer
-              };
-              const backResult = await uploadToFirebase(backHairUploadFile, 'uploads/hair/');
+              if (!backHairFile.buffer) {
+                throw new Error('Back hair file buffer is missing');
+              }
+              const backResult = await uploadToFirebase(backHairFile, 'uploads/hair/');
               resourceImages.hairBackImageUrl = backResult.url;
             }
 
@@ -466,18 +462,20 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
         res.status(400).json({ message: 'Thumbnail file is invalid' });
         return;
       }
-      const thumbnailResult = await ThumbnailGenerator.processUserThumbnail(
-        thumbnailFile.path,
-        thumbnailFile.filename
-      );
-      thumbnailUrl = thumbnailResult.thumbnailUrl;
+      // Firebase Storage에 썸네일 직접 업로드
+      if (!thumbnailFile.buffer) {
+        res.status(400).json({ message: 'Thumbnail file buffer is missing' });
+        return;
+      }
+      
+      const thumbnailUploadResult = await uploadToFirebaseStorage(thumbnailFile, 'thumbnails/');
+      thumbnailUrl = thumbnailUploadResult.url;
       thumbnailSource = 'user';
     } else {
       // 첫 번째 컬러 옵션 이미지로 자동 썸네일 생성
-      // mainImageUrl은 /uploads/xxx.png 형태이므로 앞의 / 제거 후 process.cwd()와 결합
-      const imagePath = path.join(process.cwd(), mainImageUrl.startsWith('/') ? mainImageUrl.slice(1) : mainImageUrl);
-      console.log(`🔍 썸네일 생성용 이미지 경로:`, imagePath);
-      const thumbnailResult = await ThumbnailGenerator.generateThumbnail(imagePath);
+      // mainImageUrl을 ThumbnailGenerator에 직접 전달 (Firebase Storage URL 또는 로컬 경로)
+      console.log(`🔍 썸네일 생성용 이미지 URL:`, mainImageUrl);
+      const thumbnailResult = await ThumbnailGenerator.generateThumbnail(mainImageUrl);
       thumbnailUrl = thumbnailResult.thumbnailUrl;
       thumbnailSource = 'auto';
     }
@@ -585,11 +583,10 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
           // 해당 인덱스에 팔레트 이미지가 있으면 처리
           if (paletteFiles[index]) {
             try {
-              const paletteResult = await PaletteImageProcessor.processPaletteImage(
-                paletteFiles[index].path,
-                paletteFiles[index].filename
-              );
-              paletteImageUrl = paletteResult.paletteImageUrl;
+              // Firebase Storage에 팔레트 이미지 업로드
+              const uploadResult = await uploadToFirebaseStorage(paletteFiles[index], 'palettes/');
+              paletteImageUrl = uploadResult.url;
+              console.log(`✅ 팔레트 이미지 업로드 완료 (색상 옵션 ${index}):`, uploadResult.url);
             } catch (error) {
               console.error(`Error processing palette image for color option ${index}:`, error);
             }
@@ -623,24 +620,20 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
               // 중간머리 처리 (필수)
               if (filesByName[middleHairKey] && filesByName[middleHairKey].length > 0) {
                 const middleHairFile = filesByName[middleHairKey][0];
-                const middleHairBuffer = await fs.readFile(middleHairFile.path);
-                const middleHairUploadFile: Express.Multer.File = {
-                  ...middleHairFile,
-                  buffer: middleHairBuffer
-                };
-                const middleResult = await uploadToFirebase(middleHairUploadFile, 'uploads/hair/');
+                if (!middleHairFile.buffer) {
+                  throw new Error('Middle hair file buffer is missing');
+                }
+                const middleResult = await uploadToFirebase(middleHairFile, 'uploads/hair/');
                 resourceImages.hairMiddleImageUrl = middleResult.url;
               }
 
               // 뒷머리 처리 (선택사항)
               if (filesByName[backHairKey] && filesByName[backHairKey].length > 0) {
                 const backHairFile = filesByName[backHairKey][0];
-                const backHairBuffer = await fs.readFile(backHairFile.path);
-                const backHairUploadFile: Express.Multer.File = {
-                  ...backHairFile,
-                  buffer: backHairBuffer
-                };
-                const backResult = await uploadToFirebase(backHairUploadFile, 'uploads/hair/');
+                if (!backHairFile.buffer) {
+                  throw new Error('Back hair file buffer is missing');
+                }
+                const backResult = await uploadToFirebase(backHairFile, 'uploads/hair/');
                 resourceImages.hairBackImageUrl = backResult.url;
               }
 
@@ -680,9 +673,8 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
             await deleteFileIfExists(oldThumbnailPath);
           }
 
-          const imagePath = path.join(process.cwd(), newMainImageUrl.startsWith('/') ? newMainImageUrl.slice(1) : newMainImageUrl);
-          console.log(`🔍 업데이트 - 썸네일 생성용 이미지 경로:`, imagePath);
-          const thumbnailResult = await ThumbnailGenerator.generateThumbnail(imagePath);
+          console.log(`🔍 업데이트 - 썸네일 생성용 이미지 URL:`, newMainImageUrl);
+          const thumbnailResult = await ThumbnailGenerator.generateThumbnail(newMainImageUrl);
           option.thumbnailUrl = thumbnailResult.thumbnailUrl;
         }
       }
@@ -692,16 +684,16 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
     if (filesByName.thumbnail && filesByName.thumbnail.length > 0) {
       const thumbnailFile = filesByName.thumbnail[0];
       if (thumbnailFile) {
-        // 기존 썸네일 파일 삭제
-        if (oldThumbnailPath) {
-          await deleteFileIfExists(oldThumbnailPath);
-        }
+        // Firebase Storage 사용 시 로컬 파일 삭제 불필요
 
-        const thumbnailResult = await ThumbnailGenerator.processUserThumbnail(
-          thumbnailFile.path,
-          thumbnailFile.filename
-        );
-        option.thumbnailUrl = thumbnailResult.thumbnailUrl;
+        // Firebase Storage에 썸네일 직접 업로드
+        if (!thumbnailFile.buffer) {
+          res.status(400).json({ message: 'Thumbnail file buffer is missing' });
+          return;
+        }
+        
+        const thumbnailUploadResult = await uploadToFirebaseStorage(thumbnailFile, 'thumbnails/');
+        option.thumbnailUrl = thumbnailUploadResult.url;
         option.thumbnailSource = 'user';
       }
     }
@@ -799,25 +791,14 @@ export const regenerateThumbnail = async (req: AuthRequest, res: Response): Prom
       return;
     }
     
-    // 원본 이미지 경로 추출 (uploads/ 제거)
-    const imagePath = path.join(process.cwd(), 'uploads', path.basename(option.imageUrl));
-    
-    // 파일 존재 여부 확인
-    try {
-      await fs.access(imagePath);
-    } catch (error) {
-      res.status(404).json({ message: 'Original image file not found' });
-      return;
-    }
-    
     // 기존 썸네일 삭제
     if (option.thumbnailUrl) {
       const oldThumbnailPath = getThumbnailPathFromUrl(option.thumbnailUrl);
       await deleteFileIfExists(oldThumbnailPath);
     }
     
-    // 썸네일 재생성
-    const thumbnailResult = await ThumbnailGenerator.generateThumbnail(imagePath);
+    // 썸네일 재생성 (Firebase Storage URL 또는 로컬 경로 자동 처리)
+    const thumbnailResult = await ThumbnailGenerator.generateThumbnail(option.imageUrl);
     option.thumbnailUrl = thumbnailResult.thumbnailUrl;
     option.thumbnailSource = 'auto';
 

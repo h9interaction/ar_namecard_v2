@@ -26,8 +26,17 @@ export class ThumbnailGenerator {
    */
   private static async downloadImageToTemp(imageUrl: string): Promise<string> {
     if (!this.isFirebaseUrl(imageUrl)) {
-      // 로컬 파일 경로인 경우 그대로 반환
-      return imageUrl.startsWith('/') ? path.join(process.cwd(), imageUrl.slice(1)) : imageUrl;
+      // 로컬 파일 경로인 경우 절대 경로로 변환
+      if (imageUrl.startsWith('/')) {
+        // /uploads/... 형태의 경우
+        return path.join(process.cwd(), imageUrl.slice(1));
+      } else if (path.isAbsolute(imageUrl)) {
+        // 이미 절대 경로인 경우 그대로 반환
+        return imageUrl;
+      } else {
+        // 상대 경로인 경우 현재 디렉토리 기준으로 변환
+        return path.join(process.cwd(), imageUrl);
+      }
     }
 
     // Firebase Storage에서 다운로드
@@ -37,13 +46,31 @@ export class ThumbnailGenerator {
       // temp 디렉토리 생성
       await fs.mkdir(path.dirname(tempFilePath), { recursive: true });
       
-      // Firebase Storage URL에서 파일 경로 추출
+      // Firebase Storage URL에서 파일 경로 추출 (개선된 파싱)
       const url = new URL(imageUrl);
-      const filePath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] || '');
+      let filePath = '';
+      
+      // 다양한 Firebase Storage URL 형식 지원
+      if (url.hostname.includes('firebasestorage.app') || url.hostname.includes('googleapis.com')) {
+        // 새로운 형식: https://storage.googleapis.com/bucket-name/uploads/filename
+        if (url.pathname.includes('/o/')) {
+          filePath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] || '');
+        } else {
+          // 직접 경로 형식: https://storage.googleapis.com/bucket-name/uploads/filename
+          const pathParts = url.pathname.split('/');
+          if (pathParts.length >= 3) {
+            filePath = pathParts.slice(2).join('/'); // bucket-name 이후의 경로
+          }
+        }
+      }
       
       if (!filePath) {
-        throw new Error('Invalid Firebase Storage URL');
+        console.error('❌ Firebase Storage URL 파싱 실패:', imageUrl);
+        console.error('URL 구조:', { hostname: url.hostname, pathname: url.pathname });
+        throw new Error('Invalid Firebase Storage URL format');
       }
+      
+      console.log('✅ 파싱된 Firebase 파일 경로:', filePath);
 
       const bucket = getBucket();
       const file = bucket.file(filePath);
@@ -114,6 +141,11 @@ export class ThumbnailGenerator {
   ): Promise<ThumbnailResult> {
     await this.ensureThumbnailDir();
 
+    // originalImagePath가 undefined인 경우 방어
+    if (!originalImagePath) {
+      throw new Error('Original image path is required for thumbnail generation');
+    }
+    
     const originalName = filename || path.basename(originalImagePath, path.extname(originalImagePath));
     const thumbnailFilename = `thumb_${originalName}_${Date.now()}.jpg`;
     const localThumbnailPath = path.join(this.THUMBNAIL_DIR, thumbnailFilename);
@@ -185,6 +217,11 @@ export class ThumbnailGenerator {
     filename?: string
   ): Promise<ThumbnailResult> {
     await this.ensureThumbnailDir();
+
+    // spriteImagePath가 undefined인 경우 방어
+    if (!spriteImagePath) {
+      throw new Error('Sprite image path is required for thumbnail generation');
+    }
 
     const originalName = filename || path.basename(spriteImagePath, path.extname(spriteImagePath));
     const thumbnailFilename = `thumb_sprite_${originalName}_${Date.now()}.jpg`;

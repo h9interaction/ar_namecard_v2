@@ -1350,13 +1350,19 @@
             const categoryId = document.getElementById('categoryId').value;
             const isEdit = !!categoryId;
             
-            const formData = {
-                name: document.getElementById('categoryName').value,
-                type: document.getElementById('categoryType').value,
-                order: parseInt(document.getElementById('categoryOrder').value) || 0
-            };
-
+            // 제출 버튼 찾기 및 비활성화
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
+            
             try {
+                const formData = {
+                    name: document.getElementById('categoryName').value,
+                    type: document.getElementById('categoryType').value,
+                    order: parseInt(document.getElementById('categoryOrder').value) || 0
+                };
+
                 const url = isEdit ? 
                     `/api/admin/stickers/categories/${categoryId}` : 
                     '/api/admin/stickers/categories';
@@ -1383,6 +1389,10 @@
             } catch (error) {
                 console.error('카테고리 저장 오류:', error);
                 alert(`❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
 
@@ -1436,38 +1446,45 @@
 
         // 단일 업로드 처리
         async function handleSingleUpload(categoryId, itemId, isEdit) {
-            const formData = new FormData();
-            formData.append('name', document.getElementById('itemName').value);
-            formData.append('order', document.getElementById('itemOrder').value);
-
-            // 애니메이션 정보 추가
-            const frames = document.getElementById('itemFrames').value;
-            const columns = document.getElementById('itemColumns').value;
-            const duration = document.getElementById('itemDuration').value;
-            const animationType = document.getElementById('itemAnimationType').value;
-
-            if (frames) formData.append('frames', frames);
-            if (columns) formData.append('columns', columns);
-            if (duration) formData.append('duration', duration);
-            if (animationType) formData.append('animationType', animationType);
-
-            const imageFile = document.getElementById('itemImage').files[0];
-            const thumbnailFile = document.getElementById('itemThumbnail').files[0];
-
-            if (!isEdit && !imageFile) {
-                alert('새 스티커을 추가할 때는 이미지가 필요합니다.');
-                return;
-            }
-
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
-            if (thumbnailFile) {
-                formData.append('thumbnail', thumbnailFile);
-            }
-
+            const submitBtn = document.getElementById('submitItemBtn');
+            const originalText = submitBtn.textContent;
+            
+            // 버튼 비활성화 및 로딩 상태 표시
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
+            
             try {
+                const formData = new FormData();
+                formData.append('name', document.getElementById('itemName').value);
+                formData.append('order', document.getElementById('itemOrder').value);
+
+                // 애니메이션 정보 추가
+                const frames = document.getElementById('itemFrames').value;
+                const columns = document.getElementById('itemColumns').value;
+                const duration = document.getElementById('itemDuration').value;
+                const animationType = document.getElementById('itemAnimationType').value;
+
+                if (frames) formData.append('frames', frames);
+                if (columns) formData.append('columns', columns);
+                if (duration) formData.append('duration', duration);
+                if (animationType) formData.append('animationType', animationType);
+
+                const imageFile = document.getElementById('itemImage').files[0];
+                const thumbnailFile = document.getElementById('itemThumbnail').files[0];
+
+                if (!isEdit && !imageFile) {
+                    alert('새 스티커을 추가할 때는 이미지가 필요합니다.');
+                    return;
+                }
+
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
+
+                if (thumbnailFile) {
+                    formData.append('thumbnail', thumbnailFile);
+                }
+
                 const url = isEdit ? 
                     `/api/admin/stickers/categories/${categoryId}/items/${itemId}` : 
                     `/api/admin/stickers/categories/${categoryId}/items`;
@@ -1494,6 +1511,10 @@
             } catch (error) {
                 console.error('스티커 저장 오류:', error);
                 alert(`❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         }
 
@@ -1504,62 +1525,74 @@
                 return;
             }
 
+            const submitBtn = document.getElementById('submitItemBtn');
+            const originalText = submitBtn.textContent;
+            
+            // 버튼 비활성화
+            submitBtn.disabled = true;
+            submitBtn.textContent = '업로드 중...';
+
             const progressContainer = document.getElementById('uploadProgress');
             progressContainer.style.display = 'block';
             
             let successCount = 0;
             let failCount = 0;
 
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const fileData = selectedFiles[i];
-                updateProgress(i + 1, selectedFiles.length);
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const fileData = selectedFiles[i];
+                    updateProgress(i + 1, selectedFiles.length);
 
-                const formData = new FormData();
-                formData.append('name', fileData.name);
-                formData.append('order', fileData.order.toString());
-                formData.append('image', fileData.file);
-                
-                // 애니메이션 정보 추가
-                if (fileData.frames) formData.append('frames', fileData.frames.toString());
-                if (fileData.columns) formData.append('columns', fileData.columns.toString());
-                if (fileData.duration) formData.append('duration', fileData.duration.toString());
-                if (fileData.animationType) formData.append('animationType', fileData.animationType);
-                
-                if (fileData.thumbnailFile) {
-                    formData.append('thumbnail', fileData.thumbnailFile);
-                }
-
-                try {
-                    const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${currentToken}`
-                        },
-                        body: formData
-                    });
-
-                    if (response.ok) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                        console.error(`파일 업로드 실패: ${fileData.name}`);
+                    const formData = new FormData();
+                    formData.append('name', fileData.name);
+                    formData.append('order', fileData.order.toString());
+                    formData.append('image', fileData.file);
+                    
+                    // 애니메이션 정보 추가
+                    if (fileData.frames) formData.append('frames', fileData.frames.toString());
+                    if (fileData.columns) formData.append('columns', fileData.columns.toString());
+                    if (fileData.duration) formData.append('duration', fileData.duration.toString());
+                    if (fileData.animationType) formData.append('animationType', fileData.animationType);
+                    
+                    if (fileData.thumbnailFile) {
+                        formData.append('thumbnail', fileData.thumbnailFile);
                     }
 
-                } catch (error) {
-                    failCount++;
-                    console.error(`파일 업로드 오류: ${fileData.name}`, error);
-                }
-            }
+                    try {
+                        const response = await fetch(`/api/admin/stickers/categories/${categoryId}/items`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${currentToken}`
+                            },
+                            body: formData
+                        });
 
-            progressContainer.style.display = 'none';
-            
-            if (successCount > 0) {
-                alert(`✅ ${successCount}개의 스티커이 성공적으로 추가되었습니다.${failCount > 0 ? ` (실패: ${failCount}개)` : ''}`);
-                closeItemModal();
-                // 전체 새로고침 대신 해당 카테고리만 업데이트
-                await updateCategoryItems(categoryId);
-            } else {
-                alert(`❌ 모든 업로드가 실패했습니다.`);
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.error(`파일 업로드 실패: ${fileData.name}`);
+                        }
+
+                    } catch (error) {
+                        failCount++;
+                        console.error(`파일 업로드 오류: ${fileData.name}`, error);
+                    }
+                }
+
+                if (successCount > 0) {
+                    alert(`✅ ${successCount}개의 스티커이 성공적으로 추가되었습니다.${failCount > 0 ? ` (실패: ${failCount}개)` : ''}`);
+                    closeItemModal();
+                    // 전체 새로고침 대신 해당 카테고리만 업데이트
+                    await updateCategoryItems(categoryId);
+                } else {
+                    alert(`❌ 모든 업로드가 실패했습니다.`);
+                }
+            } finally {
+                // 진행률 숨기기 및 버튼 상태 복원
+                progressContainer.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         }
 

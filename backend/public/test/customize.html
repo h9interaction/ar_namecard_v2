@@ -747,15 +747,37 @@
                 return;
             }
             
-            currentUserToken = token;
-            localStorage.setItem('userToken', token);
-            showStatus('authStatus', 'success', '✅ 사용자 토큰이 설정되었습니다.');
-            loadData();
+            const setButton = document.querySelector('button[onclick="setUserToken()"]');
+            const originalText = setButton.textContent;
+            
+            try {
+                // 버튼 비활성화 및 로딩 상태 표시
+                setButton.disabled = true;
+                setButton.textContent = '설정 중...';
+                
+                currentUserToken = token;
+                localStorage.setItem('userToken', token);
+                showStatus('authStatus', 'success', '✅ 사용자 토큰이 설정되었습니다.');
+                loadData();
+            } finally {
+                // 버튼 상태 복원 (loadData가 완료된 후)
+                setTimeout(() => {
+                    setButton.disabled = false;
+                    setButton.textContent = originalText;
+                }, 1000);
+            }
         }
 
         // 테스트 토큰 생성
         async function getUserToken() {
+            const tokenButton = document.querySelector('button[onclick="getUserToken()"]');
+            const originalText = tokenButton.textContent;
+            
             try {
+                // 버튼 비활성화 및 로딩 상태 표시
+                tokenButton.disabled = true;
+                tokenButton.textContent = '토큰 생성 중...';
+                
                 showStatus('authStatus', 'loading', '테스트 토큰을 생성하는 중...');
 
                 const response = await fetch('/api/auth/test-token/002', {
@@ -781,6 +803,10 @@
             } catch (error) {
                 console.error('토큰 생성 오류:', error);
                 showStatus('authStatus', 'error', `❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                tokenButton.disabled = false;
+                tokenButton.textContent = originalText;
             }
         }
 
@@ -1342,20 +1368,79 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             try {
+                // 레이어링 순서를 위한 이미지 배열 생성
+                const layeredImages = [];
+                
                 // 아바타 카테고리를 order 순서대로 정렬
                 const sortedCategories = avatarCategories
                     .filter(category => avatarSelections[category.type])
                     .sort((a, b) => (a.order || 0) - (b.order || 0));
                 
-                // 순서대로 이미지 레이어링
+                // 각 카테고리별로 이미지 레이어 처리
                 for (const category of sortedCategories) {
                     const optionId = avatarSelections[category.type];
                     const option = category.options?.find(opt => (opt._id || opt.id) === optionId);
                     
-                    if (option && (option.imageUrl || option.thumbnailUrl)) {
+                    if (!option) continue;
+                    
+                    // 헤어 카테고리의 레이어드 구조 처리
+                    if (category.type === 'hair') {
+                        // 첫 번째 색상 옵션을 기본으로 사용 (색상 선택 기능이 없으므로)
+                        const colorOption = option.color?.[0];
+                        
+                        // 레이어드 헤어 구조인지 확인 (resourceImages가 있는 경우)
+                        if (colorOption?.resourceImages) {
+                            // 뒷머리 (인덱스 0) - 얼굴보다 뒤에 배치
+                            if (colorOption.resourceImages.hairBackImageUrl) {
+                                layeredImages.push({
+                                    url: colorOption.resourceImages.hairBackImageUrl,
+                                    layer: 0,
+                                    type: 'hair_back'
+                                });
+                            }
+                            
+                            // 중간머리 (인덱스 2) - 얼굴보다 앞에 배치
+                            if (colorOption.resourceImages.hairMiddleImageUrl) {
+                                layeredImages.push({
+                                    url: colorOption.resourceImages.hairMiddleImageUrl,
+                                    layer: 2,
+                                    type: 'hair_middle'
+                                });
+                            }
+                        } else {
+                            // 일반적인 헤어 구조 (단일 이미지)
+                            const imageUrl = colorOption?.imageUrl || option.imageUrl || option.thumbnailUrl;
+                            if (imageUrl) {
+                                layeredImages.push({
+                                    url: imageUrl,
+                                    layer: category.order || 0,
+                                    type: category.type
+                                });
+                            }
+                        }
+                    } else {
+                        // 다른 카테고리들은 기존 방식 유지
                         const imageUrl = option.imageUrl || option.thumbnailUrl;
-                        await drawImageOnCanvas(ctx, imageUrl, canvas.width, canvas.height);
+                        if (imageUrl) {
+                            // 얼굴 카테고리는 레이어 1로 설정
+                            const layer = category.type === 'face' ? 1 : (category.order || 0);
+                            layeredImages.push({
+                                url: imageUrl,
+                                layer: layer,
+                                type: category.type
+                            });
+                        }
                     }
+                }
+                
+                // 레이어 순서대로 정렬하여 이미지 그리기
+                layeredImages.sort((a, b) => a.layer - b.layer);
+                
+                console.log('레이어 순서:', layeredImages.map(img => ({ type: img.type, layer: img.layer })));
+                
+                // 순서대로 이미지 레이어링
+                for (const layerImage of layeredImages) {
+                    await drawImageOnCanvas(ctx, layerImage.url, canvas.width, canvas.height);
                 }
                 
                 // 선택된 아바타 정보 업데이트
@@ -1492,12 +1577,12 @@
             }
 
             const saveButton = document.getElementById('saveCustomization');
-            const originalText = saveButton.textContent;
+            const originalText = saveButton.innerHTML;
             
             try {
                 isLoading = true;
                 saveButton.disabled = true;
-                saveButton.innerHTML = '<div class="loading-spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>';
+                saveButton.innerHTML = '💾 저장 중...<div class="loading-spinner" style="width: 16px; height: 16px; margin-left: 8px; display: inline-block; vertical-align: middle;"></div>';
 
                 // 1. 합성된 아바타 이미지 업로드
                 let avatarImgUrl = '';
@@ -1528,7 +1613,7 @@
             } finally {
                 isLoading = false;
                 saveButton.disabled = false;
-                saveButton.textContent = originalText;
+                saveButton.innerHTML = originalText;
                 updateSaveButton();
             }
         }

@@ -16,6 +16,11 @@ export class PaletteImageProcessor {
   }
 
   static async processPaletteImage(inputPath: string, originalFilename?: string): Promise<{ paletteImageUrl: string, filename: string }> {
+    // inputPath가 undefined인 경우 처리
+    if (!inputPath) {
+      throw new Error('Input path is required for palette image processing');
+    }
+
     await this.ensurePaletteDirectoryExists();
 
     const fileExtension = path.extname(originalFilename || inputPath) || '.jpg';

@@ -507,6 +507,8 @@ function generateServerUrls() {
   const port = process.env.PORT || '3000';
   const httpsPort = process.env.HTTPS_PORT || '3443';
 
+  console.log('Swagger: PUBLIC_API_URL from env:', process.env.PUBLIC_API_URL);
+
   const localIp = getLocalIpAddress();
   const servers = [
     {

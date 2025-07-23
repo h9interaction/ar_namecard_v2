@@ -1134,13 +1134,19 @@
             const categoryId = document.getElementById('categoryId').value;
             const isEdit = !!categoryId;
 
-            const formData = {
-                name: document.getElementById('categoryName').value,
-                type: document.getElementById('categoryType').value,
-                order: parseInt(document.getElementById('categoryOrder').value) || 0
-            };
+            // 제출 버튼 찾기 및 비활성화
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
 
             try {
+                const formData = {
+                    name: document.getElementById('categoryName').value,
+                    type: document.getElementById('categoryType').value,
+                    order: parseInt(document.getElementById('categoryOrder').value) || 0
+                };
+
                 const url = isEdit ?
                     `/api/admin/characters/categories/${categoryId}` :
                     '/api/admin/characters/categories';
@@ -1167,6 +1173,10 @@
             } catch (error) {
                 console.error('카테고리 저장 오류:', error);
                 alert(`❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
 
@@ -1205,6 +1215,12 @@
                 alert(error.message);
                 return;
             }
+
+            // 제출 버튼 찾기 및 비활성화
+            const submitBtn = document.getElementById('submitOptionBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
 
             try {
                 // 이미지 업로드 및 컬러 옵션 준비
@@ -1331,6 +1347,10 @@
             } catch (error) {
                 console.error('옵션 저장 오류:', error);
                 alert(`❌ 네트워크 오류: ${error.message}`);
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
 

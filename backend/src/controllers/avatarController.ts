@@ -34,9 +34,21 @@ export const getAvatarByUserId = async (req: Request, res: Response): Promise<vo
     // avatarSelections 상세 정보 가져오기
     const avatarSelectionsWithDetails: any = {};
     if (avatar.avatarSelections) {
-      for (const [categoryType, optionId] of Object.entries(avatar.avatarSelections)) {
+      for (const [categoryType, selection] of Object.entries(avatar.avatarSelections)) {
         const category = await AvatarCategory.findOne({ type: categoryType });
         if (category) {
+          // 새로운 데이터 구조와 기존 데이터 구조 모두 지원
+          const optionId = typeof selection === 'object' && selection !== null ? 
+            (selection as any).optionId : selection;
+          const colorIndex = typeof selection === 'object' && selection !== null ? 
+            ((selection as any).colorIndex || 0) : 0;
+            
+          console.log(`🔍 아바타 조회 - ${categoryType}:`, {
+            selection,
+            extractedOptionId: optionId,
+            colorIndex
+          });
+            
           const option = category.options.find((opt: any) => opt._id.toString() === optionId);
           if (option) {
             // 기존 데이터 호환성을 위한 마이그레이션 로직
@@ -59,6 +71,8 @@ export const getAvatarByUserId = async (req: Request, res: Response): Promise<vo
             
             avatarSelectionsWithDetails[categoryType] = {
               id: optionId,
+              optionId: optionId,      // 새로운 구조 지원
+              colorIndex: colorIndex,   // 컬러 인덱스 추가
               name: option.name,
               imageUrl: option.imageUrl,
               thumbnailUrl: option.thumbnailUrl,

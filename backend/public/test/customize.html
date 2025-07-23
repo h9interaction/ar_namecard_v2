@@ -1618,16 +1618,12 @@
             }
         }
 
-        // 아바타 이미지 업로드
+        // 아바타 이미지 업로드 (임시로 /api/upload 사용)
         async function uploadAvatarImage(blob) {
             const formData = new FormData();
-            formData.append('avatar', blob, 'avatar.png');
-            
-            // 사용자 ID 추출 (JWT 토큰에서 추출하거나 임시로 설정)
-            const userId = extractUserIdFromToken(currentUserToken) || 'temp-user-id';
-            formData.append('userId', userId);
+            formData.append('file', blob, 'avatar.png');
 
-            const response = await fetch('/api/avatars/upload', {
+            const response = await fetch('/api/upload', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${currentUserToken}`
@@ -1638,9 +1634,9 @@
             const data = await response.json();
 
             if (response.ok) {
-                return data.avatarImgUrl;
+                return data.url; // avatarImgUrl 대신 url 사용
             } else {
-                throw new Error(data.error || '아바타 이미지 업로드 실패');
+                throw new Error(data.error || data.message || '아바타 이미지 업로드 실패');
             }
         }
 

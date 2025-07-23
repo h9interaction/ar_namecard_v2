@@ -22,24 +22,24 @@ FROM node:18-alpine AS production
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
 
-# Create app user for security
-RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+# Create a non-root user for security
+RUN addgroup -S ar-namecard-group && adduser -S ar-namecard-user -G ar-namecard-group
 
-# Set working directory
 WORKDIR /app
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
+# Copy necessary files from the builder stage
+COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/dist ./dist
+COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/public ./public
+COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/ssl ./ssl
+COPY package*.json ./
 
-# Create directories for uploads and SSL
-RUN mkdir -p uploads/thumbnails uploads/palettes ssl public && chown -R nextjs:nodejs uploads ssl public
+# Install only production dependencies
+RUN npm install --only=production
 
-# Switch to non-root user
-USER nextjs
+# Switch to the non-root user
+USER ar-namecard-user
 
-# Expose ports
+# Expose the application ports
 EXPOSE 3000 3443
 
 # Health check

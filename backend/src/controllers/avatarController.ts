@@ -118,7 +118,8 @@ export const getAvatarByUserId = async (req: Request, res: Response): Promise<vo
               name: item.name,
               imageUrl: item.imageUrl,
               thumbnailUrl: item.thumbnailUrl,
-              category: category.name
+              category: category.name,
+              animation: item.animation // 애니메이션 정보 추가
             };
             found = true;
             break;

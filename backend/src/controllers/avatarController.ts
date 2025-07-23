@@ -198,7 +198,16 @@ export const uploadAvatarImage = async (req: Request, res: Response): Promise<vo
       return;
     }
     
-    const avatarImgUrl = `/uploads/${req.file.filename}`;
+    // Firebase Storage를 사용하여 이미지 업로드
+    const { uploadToFirebase } = require('../config/firebase-storage');
+    
+    if (!req.file.buffer) {
+      res.status(400).json({ error: 'File buffer is missing' });
+      return;
+    }
+    
+    const uploadResult = await uploadToFirebase(req.file, 'uploads/avatars/');
+    const avatarImgUrl = uploadResult.url;
     
     const avatar = await UserCustomization.findOneAndUpdate(
       { id: userId },

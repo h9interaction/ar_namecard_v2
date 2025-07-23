@@ -50,7 +50,7 @@ const avatarValidation = [
   body('item1').optional().trim(),
   body('item2').optional().trim(),
   body('item3').optional().trim(),
-  body('avatarImgUrl').optional().matches(/^\/uploads\/.*\.(png|jpg|jpeg|gif|webp)$/i).withMessage('Avatar image URL must be a valid image path').trim()
+  body('avatarImgUrl').optional().matches(/^(\/uploads\/.*\.(png|jpg|jpeg|gif|webp)$|https:\/\/.*\.(png|jpg|jpeg|gif|webp)$)/i).withMessage('Avatar image URL must be a valid image path').trim()
 ];
 
 /**

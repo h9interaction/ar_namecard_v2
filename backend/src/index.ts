@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === 'production') {
 const app = express();
 const PORT = parseInt(process.env['PORT'] || '3000', 10);
 const HTTPS_PORT = parseInt(process.env['HTTPS_PORT'] || '3443', 10);
-const HOST = process.env['HOST'] || '0.0.0.0';
+const HOST = '0.0.0.0'; // 명시적으로 모든 인터페이스에서 리스닝
 const ENABLE_HTTPS = process.env['ENABLE_HTTPS'] === 'true' && process.env.NODE_ENV !== 'production';
 
 // 로컬 IP 주소 찾기
@@ -167,8 +167,8 @@ app.use('*', (_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// HTTP 서버 시작
-app.listen(PORT, HOST, () => {
+// HTTP 서버 시작 (IPv4 명시적 바인딩)
+const server = app.listen(PORT, HOST, () => {
   const localIp = getLocalIpAddress();
   console.log(`🚀 HTTP Server is running on:`);
   console.log(`   - Local:    http://localhost:${PORT}`);
@@ -177,6 +177,15 @@ app.listen(PORT, HOST, () => {
   if (ENABLE_HTTPS) {
     console.log(`   - HTTPS:    https://localhost:${HTTPS_PORT}`);
     console.log(`   - Network:  https://${localIp}:${HTTPS_PORT}`);
+  }
+});
+
+// IPv6 비활성화 (IPv4만 사용)
+server.on('error', (error: any) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  } else {
+    console.error('❌ Server error:', error);
   }
 });
 

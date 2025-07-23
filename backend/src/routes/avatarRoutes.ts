@@ -180,6 +180,18 @@ router.put('/:userId', authenticateToken, avatarValidation, updateAvatar);
  *       401:
  *         description: 인증 실패
  */
+// 디버깅용 환경 변수 확인 엔드포인트
+router.get('/debug/env', (req, res) => {
+  res.json({
+    hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
+    hasFirebasePrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+    hasFirebaseClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+    hasFirebaseStorageBucket: !!process.env.FIREBASE_STORAGE_BUCKET,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    nodeEnv: process.env.NODE_ENV
+  });
+});
+
 router.post('/upload', authenticateToken, uploadSingle('avatar'), uploadAvatarImage);
 
 export default router;

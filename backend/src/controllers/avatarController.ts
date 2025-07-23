@@ -190,7 +190,12 @@ export const uploadAvatarImage = async (req: Request, res: Response): Promise<vo
       hasFile: !!req.file,
       userId: req.body?.userId,
       fileSize: req.file?.size,
-      mimetype: req.file?.mimetype
+      mimetype: req.file?.mimetype,
+      hasBuffer: !!req.file?.buffer,
+      hasPath: !!req.file?.path,
+      filePath: req.file?.path,
+      fieldname: req.file?.fieldname,
+      originalname: req.file?.originalname
     });
 
     if (!req.file) {

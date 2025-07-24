@@ -14,15 +14,50 @@ export const initializeFirebase = (): admin.app.App => {
     // 환경변수 우선, 없으면 파일 기반 fallback
     if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
       console.log('✅ 환경 변수로 Firebase 초기화 중...');
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        }),
-        projectId: process.env.FIREBASE_PROJECT_ID
+      // Private Key 처리 개선
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY!;
+      
+      // 다양한 개행 문자 형식 처리
+      if (privateKey.includes('\\n')) {
+        privateKey = privateKey.replace(/\\n/g, '\n');
+      }
+      
+      // Base64로 인코딩된 경우 처리
+      if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        try {
+          privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
+        } catch (e) {
+          console.warn('⚠️ Base64 디코딩 실패, 원본 키 사용');
+        }
+      }
+      
+      console.log('🔧 Private Key 형식 확인:', {
+        hasBeginMarker: privateKey.includes('-----BEGIN PRIVATE KEY-----'),
+        hasEndMarker: privateKey.includes('-----END PRIVATE KEY-----'),
+        length: privateKey.length,
+        firstChars: privateKey.substring(0, 50) + '...'
       });
-      console.log('✅ Firebase 환경 변수 초기화 완료');
+      
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            privateKey: privateKey,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          }),
+          projectId: process.env.FIREBASE_PROJECT_ID
+        });
+        console.log('✅ Firebase 환경 변수 초기화 완료');
+      } catch (error) {
+        console.error('❌ Firebase 초기화 오류:', error);
+        console.error('❌ Firebase 환경변수 확인:', {
+          hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+          hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+          hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+          hasStorageBucket: !!process.env.FIREBASE_STORAGE_BUCKET
+        });
+        throw error;
+      }
     } else {
       console.log('⚠️ 환경 변수 부족, 서비스 계정 파일로 초기화 시도...');
       // 로컬 개발용 fallback

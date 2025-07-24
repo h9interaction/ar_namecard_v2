@@ -1,0 +1,60 @@
+services:
+  ar-namecard-backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ar-namecard-backend-dev
+    
+    # 개발용 환경변수 설정
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+      - MONGODB_URI=mongodb://host.docker.internal:27017/ar_namecard  # 로컬 MongoDB 연결
+      - JWT_SECRET=your-jwt-secret-key
+      - JWT_EXPIRES_IN=24h
+      - FIREBASE_PROJECT_ID=hninepeople
+      - FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@hninepeople.iam.gserviceaccount.com
+      - FIREBASE_STORAGE_BUCKET=hninepeople.firebasestorage.app
+      - FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCzcpf/pmIpA3ko\nsR4+J2jYUSn2UffCdikqbax14nItr941bzkngE8l4ksH+3qBCp1A5P5snJF/XG31\nBTvrf3b8xmbLjVB3RNYNJTyTOYCs+Q06AyxsI5lSCJMT5Ixjp9uCMqpLyqg89/ra\noy4z/YXFsZz1Cn//kwWVeYlmXen52Av1ylpaTKQAxDoS6Lw0wKr8Z0DSyCmAKp/8\n9dmtEvRWq/omF1UCnQb/BvVbcza1okfBhQS1m6ammhnChy2i1RXcuXl4Jld4KYoX\n3fTCfJIi25GwlJBxRhu9OfJzitakUidHH1f2NArMvC0V2c6PaB+3kU5sXt1hRbjG\nEW9IN71JAgMBAAECggEAAXPx8lxT4uJf8KIHfUgXJ5o3oWKOQ50ujeUDrpQp6cAI\n5+yZvT3DFkrP4fWJq0INXiVEgJdfb7UtQDy9vJVEfr0x/5+qKT8Nzx8wL355kdz1\n3BSCv3Dl2MXQQArbjqKBKtuTaKfwRwcYeTz1Pq9EriI3I75FJUn403ofkEw+HNtd\nD9FB6V3bgmfMhW3pC6QHx165lFpJsumIOGKYrEZ8BDFpCiiPD1Wauc3qO5ADjSgQ\nZwyEDrmbEOuLcVB6oyM+Pq26j+KL2nm7WnYQDWkT6CT3OACcd6RrD4N3amsYdcSO\npleiPOannrBxTmplE7+/J/6c6rm8wqv5uvuVS7dPIQKBgQD8unHqERBk108ijda9\nsNR0ClOycKNlqJDsbzPTEM+8d8Qg6MRLHCWMpVkvdwDZjHc1m4/xSNxrrgdeGjS5\nrmkBJq2Rmy68ILL725Z/z5wcZaBg65+fBbPVxPgpYx7Bi3eDhYpXovyplqLJsU6M\nstWGQz74sJQUSivcg+LitXneKQKBgQC1xUrwrbJD+u7is7hUuoYIzJBqGhTRvJel\nuSVxWqI9ooOgwn5LJJAsqNpxLEXsbTLC+NPLuZ5217aPlNIVlFoLs/LSpAvQpE/7\nW2CZFcqoKyuykFTIxanvpOaTgenCTV9aaXVcso1OWbXDtb1gEOICFwTDcr9GFq+H\nAXFLW8CKIQKBgQDzbU6N6xPEXdL+cGp32dw5TT0i8fWg1IWLBu1/DoFZgm6qWCnC\nQwE0AIvv+QsbgH3OZ+F0wf51xXGZRVqlwwWnMy8ZwcR5NnHPv8mtoDY47/ZThIEC\nNgbrD8cMbknQmNpsF3OSSA5f9xUjeqIzSYn7wcfk2Ig5Jtwqkeo2/h+9SQKBgEOg\nrrwS89MlBkHkOb2UVA/sBALlxz8tWoJ2+v5MiTZDQ5PJKPHOHbHv9K3MmgtXqV4u\n86XFXra6lRqgdPVAZ6wY/EvwatDqgTN0kOED4Y1l2nEqD9FO8WXOxVa2LAF1hfd+\nawLdD4PKDr1M3bNjNKMwaz5Ib++kuxOQrtUpwt3hAoGBAOu2R1rRIbOzmK1eIHCm\nFNmO+litBGrbCGYlpuq5nqm7Of7GtGUUiEVYWKyP/aevpC0s2Flfa4/sjM3N3aVx\nkmgDnWdlz5wh02N997oD9zbvm8pZ45QKZhW8MUBY/0DpegXK2tr6x33gIX4+UFzx\n/ZdDo5Ds0Ousmq16XgeblLfo\n-----END PRIVATE KEY-----\n
+      - MAX_FILE_SIZE=10485760
+      - UPLOAD_DIR=uploads
+      - CORS_ALLOW_ALL=true  # 개발용으로 CORS 완전 허용
+    
+    # 포트 매핑
+    ports:
+      - "3001:3000"  # 기본 개발서버와 충돌 방지를 위해 3001로 매핑
+    
+    # 볼륨 마운트
+    volumes:
+      # 로그 파일 유지
+      - ./logs:/app/logs
+      # 개발용 SSL 인증서 (필요시)
+      - ./ssl:/app/ssl:ro
+    
+    # 재시작 정책
+    restart: unless-stopped
+    
+    # 네트워크 설정
+    networks:
+      - ar-namecard-dev-network
+    
+    # 헬스체크 (개발용으로 간소화)
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 30s
+    
+    # 로깅 설정 (개발용으로 더 상세하게)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+networks:
+  ar-namecard-dev-network:
+    driver: bridge

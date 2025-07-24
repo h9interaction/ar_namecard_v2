@@ -30,8 +30,11 @@ WORKDIR /app
 # Copy necessary files from the builder stage
 COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/dist ./dist
 COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/public ./public
-COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/ssl ./ssl
+COPY --from=builder --chown=ar-namecard-user:ar-namecard-group /app/src ./src
 COPY package*.json ./
+
+# Create SSL directory (optional, for HTTPS support)
+RUN mkdir -p ./ssl
 
 # Install only production dependencies
 RUN npm install --only=production

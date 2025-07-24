@@ -486,7 +486,9 @@ const options = {
       },
     ],
   },
-  apis: ['./src/routes/*.ts'], // API 파일 경로
+  apis: process.env.NODE_ENV === 'production' 
+    ? ['/app/src/routes/*.ts'] // 프로덕션/Docker 환경에서도 원본 TS 파일 사용
+    : ['./src/routes/*.ts'], // 개발 환경
 };
 
 // 로컬 IP 주소 찾기

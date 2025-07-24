@@ -133,19 +133,50 @@ app.post('/api/upload', upload.single('file'), async (req, res): Promise<void> =
   }
 });
 
-// Health 체크 엔드포인트 (CloudType용)
-app.get(['/health', '/api/health', '/health2'], (req, res) => {
-  res.json({ 
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    server: 'AR Namecard API',
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    cors: 'enabled',
-    origin: req.headers.origin || 'no-origin',
-    mongodb: 'connected',
-    firebase: 'configured'
-  });
+// Health 체크 엔드포인트 (Docker 헬스체크용)
+app.get(['/health', '/api/health', '/health2'], async (req, res) => {
+  try {
+    // MongoDB 연결 상태 실제 확인
+    const mongoose = require('mongoose');
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    
+    // Firebase 환경변수 확인
+    const firebaseConfigured = !!(
+      process.env.FIREBASE_PROJECT_ID && 
+      process.env.FIREBASE_CLIENT_EMAIL && 
+      process.env.FIREBASE_PRIVATE_KEY && 
+      process.env.FIREBASE_STORAGE_BUCKET
+    );
+    
+    const healthStatus = {
+      status: mongoStatus === 'connected' && firebaseConfigured ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      server: 'AR Namecard API',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      services: {
+        mongodb: mongoStatus,
+        firebase: firebaseConfigured ? 'configured' : 'not-configured',
+        cors: 'enabled'
+      },
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      origin: req.headers.origin || 'no-origin'
+    };
+    
+    // 서비스가 정상이 아니면 503 상태 코드 반환
+    if (healthStatus.status === 'unhealthy') {
+      res.status(503).json(healthStatus);
+    } else {
+      res.status(200).json(healthStatus);
+    }
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 app.use('/api/auth', authRoutes);

@@ -7,13 +7,21 @@ import { uploadToFirebase } from '../config/firebase-storage';
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|webp|svg/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
-  if (mimetype && extname) {
+  // Base64로 변환된 이미지 파일의 경우 mimetype이 image/*이면 허용
+  const isImageMimeType = file.mimetype.startsWith('image/');
+
+  if ((mimetype && extname) || isImageMimeType) {
     cb(null, true);
   } else {
+    console.warn('🚫 파일 타입 거부:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      extname: path.extname(file.originalname).toLowerCase()
+    });
     cb(new Error('Only images and documents are allowed'));
   }
 };

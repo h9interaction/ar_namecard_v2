@@ -93,20 +93,43 @@ setupSwagger(app);
 // 단순 이미지 업로드 엔드포인트 (Firebase Storage 사용)
 import { upload, uploadToFirebaseStorage } from './middleware/upload';
 app.post('/api/upload', upload.single('file'), async (req, res): Promise<void> => {
+  console.log('📤 /api/upload 요청 받음:', {
+    hasFile: !!req.file,
+    originalname: req.file?.originalname,
+    mimetype: req.file?.mimetype,
+    size: req.file?.size
+  });
+
   if (!req.file) {
+    console.error('❌ 파일이 업로드되지 않음');
     res.status(400).json({ message: 'No file uploaded' });
     return;
   }
   
   try {
+    console.log('🔄 Firebase Storage 업로드 시작...');
     const result = await uploadToFirebaseStorage(req.file, 'uploads/');
+    console.log('✅ 업로드 성공:', result);
+    
     res.json({ 
       url: result.url,
       filename: result.path 
     });
   } catch (error) {
-    console.error('Upload failed:', error);
-    res.status(500).json({ message: 'Upload failed', error: (error as Error).message });
+    console.error('❌ Upload failed:', error);
+    console.error('❌ Error stack:', (error as Error).stack);
+    console.error('❌ Firebase 환경변수 확인:', {
+      hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      hasStorageBucket: !!process.env.FIREBASE_STORAGE_BUCKET
+    });
+    
+    res.status(500).json({ 
+      message: 'Upload failed', 
+      error: (error as Error).message,
+      details: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
+    });
   }
 });
 

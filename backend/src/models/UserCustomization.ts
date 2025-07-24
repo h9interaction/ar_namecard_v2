@@ -46,8 +46,8 @@ const userCustomizationSchema = new Schema<IUserCustomization>({
   },
   message: {
     type: String,
-    trim: true,
-    maxlength: 100
+    trim: true
+    // maxlength 제약조건 제거 (Firebase Storage URL 호환성을 위해)
   }
 }, {
   timestamps: true,

@@ -503,30 +503,40 @@ function getLocalIpAddress(): string {
   return '127.0.0.1';
 }
 
-// 동적 서버 URL 생성
 function generateServerUrls() {
-  const localIp = getLocalIpAddress();
   const port = process.env.PORT || '3000';
   const httpsPort = process.env.HTTPS_PORT || '3443';
-  
-  return [
+
+  console.log('Swagger: PUBLIC_API_URL from env:', process.env.PUBLIC_API_URL);
+
+  const localIp = getLocalIpAddress();
+  const servers = [
     {
       url: `http://localhost:${port}`,
-      description: 'Local development server',
+      description: 'Local development server (HTTP)',
     },
     {
       url: `http://${localIp}:${port}`,
-      description: 'Network development server',
+      description: 'Network development server (HTTP)',
     },
     {
       url: `https://localhost:${httpsPort}`,
-      description: 'Local HTTPS server',
+      description: 'Local development server (HTTPS)',
     },
     {
       url: `https://${localIp}:${httpsPort}`,
-      description: 'Network HTTPS server',
+      description: 'Network development server (HTTPS)',
     },
   ];
+
+  if (process.env.PUBLIC_API_URL) {
+    servers.push({
+      url: process.env.PUBLIC_API_URL,
+      description: 'Cloudtype Production API server',
+    });
+  }
+
+  return servers;
 }
 
 // 동적 옵션 생성

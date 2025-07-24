@@ -360,29 +360,114 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
       });
     }
 
-    // 디버깅: 받은 파일들 로그
-    console.log('🔍 받은 파일들:', Object.keys(filesByName));
+    // 디버깅: 받은 파일들 완전 분석
+    console.log('🔍 받은 모든 파일들 원본 배열:', files?.map((f, i) => ({
+      index: i,
+      fieldname: f.fieldname,
+      originalname: f.originalname,
+      size: f.size,
+      hasBuffer: !!f.buffer
+    })));
+    
+    console.log('🔍 fieldname별 그룹핑 결과:', Object.keys(filesByName).map(key => ({
+      fieldname: key,
+      fileCount: filesByName[key].length,
+      files: filesByName[key].map((f, i) => ({
+        index: i,
+        originalname: f.originalname,
+        size: f.size
+      }))
+    })));
+    
     if (isHairCategory) {
       console.log('💇‍♀️ Hair 카테고리 파일들:', Object.keys(filesByName).filter(key => key.startsWith('hair_')));
     }
 
-    // 팔레트 이미지 및 hair 리소스 이미지 처리
-    const paletteFiles = filesByName.palette || [];
+    // 팔레트 파일 매칭 로직 개선 - 여러 방식 지원
+    const paletteFiles: Express.Multer.File[] = [];
+    
+    // 방법 1: palette_0, palette_1, palette_2 형태로 전송된 경우
+    for (let i = 0; i < parsedColorOptions.length; i++) {
+      const paletteKey = `palette_${i}`;
+      if (filesByName[paletteKey] && filesByName[paletteKey].length > 0) {
+        paletteFiles[i] = filesByName[paletteKey][0];
+      }
+    }
+    
+    // 방법 2: palette 필드로 여러 파일이 온 경우 (기존 방식)
+    if (paletteFiles.filter(f => f).length === 0 && filesByName.palette) {
+      filesByName.palette.forEach((file, index) => {
+        if (index < parsedColorOptions.length) {
+          paletteFiles[index] = file;
+        }
+      });
+    }
+    
+    // 방법 3: palette[0], palette[1], palette[2] 형태로 전송된 경우
+    if (paletteFiles.filter(f => f).length === 0) {
+      for (let i = 0; i < parsedColorOptions.length; i++) {
+        const paletteKey = `palette[${i}]`;
+        if (filesByName[paletteKey] && filesByName[paletteKey].length > 0) {
+          paletteFiles[i] = filesByName[paletteKey][0];
+        }
+      }
+    }
+    
+    console.log(`🔍 개선된 팔레트 파일 매칭 결과:`, {
+      colorOptionsLength: parsedColorOptions.length,
+      paletteFilesLength: paletteFiles.length,
+      matchedFiles: paletteFiles.map((f, i) => ({
+        index: i,
+        hasFile: !!f,
+        fileName: f?.originalname || '없음',
+        fileSize: f?.size || 0
+      })),
+      totalMatchedFiles: paletteFiles.filter(f => f).length
+    });
+    
+    // 컬러 옵션과 팔레트 파일 수 불일치 경고
+    const matchedFileCount = paletteFiles.filter(f => f).length;
+    if (matchedFileCount > 0 && matchedFileCount !== parsedColorOptions.length) {
+      console.warn(`⚠️ 팔레트 파일 수(${matchedFileCount})와 컬러 옵션 수(${parsedColorOptions.length})가 일치하지 않습니다!`);
+    }
+    
     const processedColorOptions = await Promise.all(
       parsedColorOptions.map(async (colorOption: any, index: number) => {
         let paletteImageUrl = '';
         let resourceImages: { hairMiddleImageUrl: string; hairBackImageUrl?: string } | undefined;
         
+        const paletteFile = paletteFiles[index];
+        console.log(`🔍 처리 중 - 컬러 옵션 ${index}:`, {
+          colorName: colorOption.colorName,
+          hasPaletteFile: !!paletteFile,
+          paletteFileName: paletteFile?.originalname,
+          paletteFileSize: paletteFile?.size,
+          paletteHasBuffer: !!paletteFile?.buffer,
+          availablePaletteFiles: paletteFiles.length,
+          maxIndex: paletteFiles.length - 1
+        });
+        
         // 해당 인덱스에 팔레트 이미지가 있으면 처리
-        if (paletteFiles[index]) {
+        if (paletteFile && paletteFile.buffer) {
           try {
+            console.log(`🔄 팔레트 이미지 업로드 시작 (색상 옵션 ${index}): ${paletteFile.originalname}`);
             // Firebase Storage에 팔레트 이미지 업로드
-            const uploadResult = await uploadToFirebaseStorage(paletteFiles[index], 'palettes/');
+            const uploadResult = await uploadToFirebaseStorage(paletteFile, 'palettes/');
             paletteImageUrl = uploadResult.url;
-            console.log(`✅ 팔레트 이미지 업로드 완료 (색상 옵션 ${index}):`, uploadResult.url);
+            console.log(`✅ 팔레트 이미지 업로드 완료 (색상 옵션 ${index}):`, {
+              originalName: paletteFile.originalname,
+              uploadedUrl: uploadResult.url
+            });
           } catch (error) {
-            console.error(`Error processing palette image for color option ${index}:`, error);
+            console.error(`❌ 팔레트 이미지 업로드 실패 (색상 옵션 ${index}):`, {
+              fileName: paletteFile.originalname,
+              error: error instanceof Error ? error.message : String(error)
+            });
           }
+        } else if (paletteFile && !paletteFile.buffer) {
+          console.error(`❌ 팔레트 파일 버퍼 없음 (색상 옵션 ${index}):`, paletteFile.originalname);
+        } else {
+          console.log(`ℹ️ 팔레트 파일 없음 (색상 옵션 ${index}): ${colorOption.colorName}`);
         }
 
         // hair 카테고리인 경우 리소스 이미지 처리
@@ -434,14 +519,41 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
           }
         }
 
-        return {
+        const result = {
           colorName: colorOption.colorName,
           imageUrl: finalImageUrl,
           paletteImageUrl,
           ...(isHairCategory && { resourceImages })
         };
+        
+        // 마지막 컬러 옵션인 경우 특별히 강조해서 로깅
+        if (index === parsedColorOptions.length - 1) {
+          console.log(`🎯 ⭐ 마지막 컬러 옵션 ${index} 처리 완료 (중요!):`, {
+            colorName: result.colorName,
+            imageUrl: result.imageUrl?.substring(0, 50) + '...',
+            paletteImageUrl: result.paletteImageUrl ? result.paletteImageUrl.substring(0, 50) + '...' : '❌❌❌ 없음',
+            paletteImageUrlFull: result.paletteImageUrl || '❌❌❌ 완전히 없음',
+            hasResourceImages: !!result.resourceImages,
+            isLastIndex: true
+          });
+        } else {
+          console.log(`✅ 컬러 옵션 ${index} 처리 완료:`, {
+            colorName: result.colorName,
+            imageUrl: result.imageUrl?.substring(0, 50) + '...',
+            paletteImageUrl: result.paletteImageUrl ? result.paletteImageUrl.substring(0, 50) + '...' : '없음',
+            hasResourceImages: !!result.resourceImages
+          });
+        }
+        
+        return result;
       })
     );
+    
+    console.log(`🎯 전체 컬러 옵션 처리 완료:`, {
+      totalOptions: processedColorOptions.length,
+      optionsWithPalette: processedColorOptions.filter(opt => opt.paletteImageUrl).length,
+      optionsWithoutPalette: processedColorOptions.filter(opt => !opt.paletteImageUrl).length
+    });
 
     // 첫 번째 컬러 옵션의 이미지를 메인 이미지로 사용
     const mainImageUrl = processedColorOptions[0]?.imageUrl;
@@ -492,10 +604,28 @@ export const addAvatarOption = async (req: AuthRequest, res: Response): Promise<
     category.options.push(newOption as any);
     await category.save();
 
+    // 저장 후 실제 DB에서 데이터 재조회하여 검증
+    const savedCategory = await AvatarCategory.findById(id);
+    const savedOption = savedCategory?.options[savedCategory.options.length - 1];
+    
+    console.log('💾 DB 저장 후 실제 데이터 검증:', {
+      savedOptionName: savedOption?.name,
+      savedColorOptionsCount: savedOption?.color?.length || 0,
+      savedColorOptions: savedOption?.color?.map((colorOpt: any, index: number) => ({
+        index,
+        colorName: colorOpt.colorName,
+        imageUrl: colorOpt.imageUrl?.substring(0, 50) + '...',
+        paletteImageUrl: colorOpt.paletteImageUrl ? colorOpt.paletteImageUrl.substring(0, 50) + '...' : '❌ 없음',
+        hasPaletteUrl: !!colorOpt.paletteImageUrl
+      }))
+    });
+
     res.status(201).json({ 
       message: 'Avatar option added successfully', 
       option: newOption,
-      category: category.name
+      category: category.name,
+      // 디버깅을 위해 실제 저장된 데이터도 포함
+      savedOption: savedOption
     });
   } catch (error) {
     console.error('Error adding avatar option:', error);
@@ -573,26 +703,96 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
         }
       }
 
-      // 새로운 팔레트 이미지 및 hair 리소스 이미지 처리
-      const paletteFiles = filesByName.palette || [];
+      // 업데이트 모드 - 팔레트 파일 매칭 로직 개선
+      const paletteFiles: Express.Multer.File[] = [];
+      
+      // 방법 1: palette_0, palette_1, palette_2 형태로 전송된 경우
+      for (let i = 0; i < parsedColorOptions.length; i++) {
+        const paletteKey = `palette_${i}`;
+        if (filesByName[paletteKey] && filesByName[paletteKey].length > 0) {
+          paletteFiles[i] = filesByName[paletteKey][0];
+        }
+      }
+      
+      // 방법 2: palette 필드로 여러 파일이 온 경우 (기존 방식)
+      if (paletteFiles.filter(f => f).length === 0 && filesByName.palette) {
+        filesByName.palette.forEach((file, index) => {
+          if (index < parsedColorOptions.length) {
+            paletteFiles[index] = file;
+          }
+        });
+      }
+      
+      // 방법 3: palette[0], palette[1], palette[2] 형태로 전송된 경우
+      if (paletteFiles.filter(f => f).length === 0) {
+        for (let i = 0; i < parsedColorOptions.length; i++) {
+          const paletteKey = `palette[${i}]`;
+          if (filesByName[paletteKey] && filesByName[paletteKey].length > 0) {
+            paletteFiles[i] = filesByName[paletteKey][0];
+          }
+        }
+      }
+      
+      console.log(`🔍 업데이트 모드 - 개선된 팔레트 파일 매칭 결과:`, {
+        colorOptionsLength: parsedColorOptions.length,
+        paletteFilesLength: paletteFiles.length,
+        matchedFiles: paletteFiles.map((f, i) => ({
+          index: i,
+          hasFile: !!f,
+          fileName: f?.originalname || '없음',
+          fileSize: f?.size || 0
+        })),
+        totalMatchedFiles: paletteFiles.filter(f => f).length
+      });
+      
+      // 컬러 옵션과 팔레트 파일 수 불일치 경고  
+      const matchedFileCount = paletteFiles.filter(f => f).length;
+      if (matchedFileCount > 0 && matchedFileCount !== parsedColorOptions.length) {
+        console.warn(`⚠️ 업데이트 모드 - 팔레트 파일 수(${matchedFileCount})와 컬러 옵션 수(${parsedColorOptions.length})가 일치하지 않습니다!`);
+      }
+      
       const processedColorOptions = await Promise.all(
         parsedColorOptions.map(async (colorOption: any, index: number) => {
           let paletteImageUrl = '';
           let resourceImages: { hairMiddleImageUrl: string; hairBackImageUrl?: string } | undefined;
           
+          const paletteFile = paletteFiles[index];
+          console.log(`🔍 업데이트 처리 중 - 컬러 옵션 ${index}:`, {
+            colorName: colorOption.colorName,
+            hasPaletteFile: !!paletteFile,
+            paletteFileName: paletteFile?.originalname,
+            paletteFileSize: paletteFile?.size,
+            paletteHasBuffer: !!paletteFile?.buffer,
+            existingPaletteUrl: colorOption.paletteImageUrl,
+            availablePaletteFiles: paletteFiles.length,
+            maxIndex: paletteFiles.length - 1
+          });
+          
           // 해당 인덱스에 팔레트 이미지가 있으면 처리
-          if (paletteFiles[index]) {
+          if (paletteFile && paletteFile.buffer) {
             try {
+              console.log(`🔄 업데이트 - 팔레트 이미지 업로드 시작 (색상 옵션 ${index}): ${paletteFile.originalname}`);
               // Firebase Storage에 팔레트 이미지 업로드
-              const uploadResult = await uploadToFirebaseStorage(paletteFiles[index], 'palettes/');
+              const uploadResult = await uploadToFirebaseStorage(paletteFile, 'palettes/');
               paletteImageUrl = uploadResult.url;
-              console.log(`✅ 팔레트 이미지 업로드 완료 (색상 옵션 ${index}):`, uploadResult.url);
+              console.log(`✅ 업데이트 - 팔레트 이미지 업로드 완료 (색상 옵션 ${index}):`, {
+                originalName: paletteFile.originalname,
+                uploadedUrl: uploadResult.url
+              });
             } catch (error) {
-              console.error(`Error processing palette image for color option ${index}:`, error);
+              console.error(`❌ 업데이트 - 팔레트 이미지 업로드 실패 (색상 옵션 ${index}):`, {
+                fileName: paletteFile.originalname,
+                error: error instanceof Error ? error.message : String(error)
+              });
             }
+          } else if (paletteFile && !paletteFile.buffer) {
+            console.error(`❌ 업데이트 - 팔레트 파일 버퍼 없음 (색상 옵션 ${index}):`, paletteFile.originalname);
           } else if (colorOption.paletteImageUrl) {
             // 기존 팔레트 이미지 유지
             paletteImageUrl = colorOption.paletteImageUrl;
+            console.log(`ℹ️ 업데이트 - 기존 팔레트 이미지 유지 (색상 옵션 ${index}):`, colorOption.paletteImageUrl);
+          } else {
+            console.log(`ℹ️ 업데이트 - 팔레트 파일 없음 (색상 옵션 ${index}): ${colorOption.colorName}`);
           }
 
           // hair 카테고리인 경우 리소스 이미지 처리
@@ -649,14 +849,41 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
             finalImageUrl = resourceImages.hairMiddleImageUrl || colorOption.imageUrl;
           }
 
-          return {
+          const result = {
             colorName: colorOption.colorName,
             imageUrl: finalImageUrl,
             paletteImageUrl,
             ...(isHairCategory && { resourceImages })
           };
+          
+          // 마지막 컬러 옵션인 경우 특별히 강조해서 로깅
+          if (index === parsedColorOptions.length - 1) {
+            console.log(`🎯 ⭐ 업데이트 - 마지막 컬러 옵션 ${index} 처리 완료 (중요!):`, {
+              colorName: result.colorName,
+              imageUrl: result.imageUrl?.substring(0, 50) + '...',
+              paletteImageUrl: result.paletteImageUrl ? result.paletteImageUrl.substring(0, 50) + '...' : '❌❌❌ 없음',
+              paletteImageUrlFull: result.paletteImageUrl || '❌❌❌ 완전히 없음',
+              hasResourceImages: !!result.resourceImages,
+              isLastIndex: true
+            });
+          } else {
+            console.log(`✅ 업데이트 - 컬러 옵션 ${index} 처리 완료:`, {
+              colorName: result.colorName,
+              imageUrl: result.imageUrl?.substring(0, 50) + '...',
+              paletteImageUrl: result.paletteImageUrl ? result.paletteImageUrl.substring(0, 50) + '...' : '없음',
+              hasResourceImages: !!result.resourceImages
+            });
+          }
+          
+          return result;
         })
       );
+      
+      console.log(`🎯 업데이트 - 전체 컬러 옵션 처리 완료:`, {
+        totalOptions: processedColorOptions.length,
+        optionsWithPalette: processedColorOptions.filter(opt => opt.paletteImageUrl).length,
+        optionsWithoutPalette: processedColorOptions.filter(opt => !opt.paletteImageUrl).length
+      });
 
       option.color = processedColorOptions;
       
@@ -700,10 +927,28 @@ export const updateAvatarOption = async (req: AuthRequest, res: Response): Promi
 
     await category.save();
 
+    // 업데이트 후 실제 DB에서 데이터 재조회하여 검증
+    const updatedCategory = await AvatarCategory.findById(categoryId);
+    const updatedOption = updatedCategory?.options.find(opt => (opt as any)._id?.toString() === optionId);
+    
+    console.log('💾 업데이트 후 DB 실제 데이터 검증:', {
+      updatedOptionName: updatedOption?.name,
+      updatedColorOptionsCount: updatedOption?.color?.length || 0,
+      updatedColorOptions: updatedOption?.color?.map((colorOpt: any, index: number) => ({
+        index,
+        colorName: colorOpt.colorName,
+        imageUrl: colorOpt.imageUrl?.substring(0, 50) + '...',
+        paletteImageUrl: colorOpt.paletteImageUrl ? colorOpt.paletteImageUrl.substring(0, 50) + '...' : '❌ 없음',
+        hasPaletteUrl: !!colorOpt.paletteImageUrl
+      }))
+    });
+
     res.json({ 
       message: 'Avatar option updated successfully', 
       option,
-      category: category.name
+      category: category.name,
+      // 디버깅을 위해 실제 업데이트된 데이터도 포함
+      updatedOption: updatedOption
     });
   } catch (error) {
     console.error('Error updating avatar option:', error);

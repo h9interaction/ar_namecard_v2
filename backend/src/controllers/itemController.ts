@@ -50,6 +50,30 @@ export const getAvatarCategories = async (req: Request, res: Response): Promise<
     
     const categories = await AvatarCategory.find(query).sort({ order: 1, createdAt: -1 });
     
+    // 헤어 카테고리의 경우 리소스 이미지 정보 로깅
+    categories.forEach(category => {
+      if (category.type === 'hair') {
+        console.log(`🔍 헤어 카테고리 조회: ${category.name}`);
+        category.options.forEach((option, optionIndex) => {
+          console.log(`  옵션 ${optionIndex}: ${option.name}`);
+          if (option.color && option.color.length > 0) {
+            option.color.forEach((colorOption, colorIndex) => {
+              console.log(`    컬러 ${colorIndex}: ${colorOption.colorName}`);
+              console.log(`      imageUrl: ${colorOption.imageUrl}`);
+              if (colorOption.resourceImages) {
+                console.log(`      resourceImages:`, {
+                  hairMiddleImageUrl: colorOption.resourceImages.hairMiddleImageUrl,
+                  hairBackImageUrl: colorOption.resourceImages.hairBackImageUrl
+                });
+              } else {
+                console.log(`      resourceImages: 없음`);
+              }
+            });
+          }
+        });
+      }
+    });
+    
     res.json(categories);
   } catch (error) {
     console.error('Error fetching avatar categories:', error);

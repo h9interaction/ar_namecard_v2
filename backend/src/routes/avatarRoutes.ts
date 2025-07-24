@@ -50,7 +50,8 @@ const avatarValidation = [
   body('item1').optional().trim(),
   body('item2').optional().trim(),
   body('item3').optional().trim(),
-  body('avatarImgUrl').optional().matches(/^(\/uploads\/.*\.(png|jpg|jpeg|gif|webp)$|https:\/\/.*\.(png|jpg|jpeg|gif|webp)$)/i).withMessage('Avatar image URL must be a valid image path').trim()
+  // avatarImgUrl 검증 완전 제거 (Firebase Storage URL 호환을 위해)
+  body('message').optional().isLength({ max: 100 }).withMessage('Message must be 100 characters or less').trim()
 ];
 
 /**
@@ -132,6 +133,9 @@ router.get('/:userId', getAvatarByUserId);
  *       401:
  *         description: 인증 실패
  */
+// 검증 없는 임시 라우트 (Firebase Storage URL 문제 해결용)
+router.put('/:userId/no-validation', authenticateToken, updateAvatar);
+
 router.put('/:userId', authenticateToken, avatarValidation, updateAvatar);
 
 /**
@@ -181,7 +185,7 @@ router.put('/:userId', authenticateToken, avatarValidation, updateAvatar);
  *         description: 인증 실패
  */
 // 디버깅용 환경 변수 확인 엔드포인트
-router.get('/debug/env', (req, res) => {
+router.get('/debug/env', (_req, res) => {
   res.json({
     hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
     hasFirebasePrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,

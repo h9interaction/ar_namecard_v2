@@ -14,7 +14,8 @@ local_backup/
 .env.local
 .env.production
 .env.test
-   backend/hninepeople-firebase-adminsdk-fbsvc-cf8551df6d.json
+backend/hninepeople-firebase-adminsdk-fbsvc-cf8551df6d.json
+.env.docker
 
 # 의존성 폴더
 node_modules/

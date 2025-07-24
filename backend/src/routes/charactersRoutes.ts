@@ -17,8 +17,6 @@ const router = Router();
  *   get:
  *     summary: 캐릭터 요소 전체 목록 조회 (눈, 코, 입, 머리, 눈썹 등)
  *     tags: [Characters And Stickers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: type
@@ -34,10 +32,8 @@ const router = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/AvatarCategory'
- *       401:
- *         description: 인증 실패
  */
-router.get('/', authenticateToken, getAvatarCategories);
+router.get('/', getAvatarCategories);
 
 /**
  * @swagger
@@ -45,8 +41,6 @@ router.get('/', authenticateToken, getAvatarCategories);
  *   get:
  *     summary: 캐릭터 요소 상세 조회
  *     tags: [Characters And Stickers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -61,11 +55,9 @@ router.get('/', authenticateToken, getAvatarCategories);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AvatarCategory'
- *       401:
- *         description: 인증 실패
  *       404:
  *         description: 캐릭터 카테고리를 찾을 수 없음
  */
-router.get('/:id', authenticateToken, getAvatarCategoryById);
+router.get('/:id', getAvatarCategoryById);
 
 export default router;

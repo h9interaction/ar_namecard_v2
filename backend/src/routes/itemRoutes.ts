@@ -17,8 +17,6 @@ const router = Router();
  *   get:
  *     summary: 스티커 전체 목록 조회
  *     tags: [Characters And Stickers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: type
@@ -34,10 +32,8 @@ const router = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/ItemCategory'
- *       401:
- *         description: 인증 실패
  */
-router.get('/', authenticateToken, getItems);
+router.get('/', getItems);
 
 /**
  * @swagger
@@ -45,8 +41,6 @@ router.get('/', authenticateToken, getItems);
  *   get:
  *     summary: 스티커 상세 조회
  *     tags: [Characters And Stickers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -61,11 +55,9 @@ router.get('/', authenticateToken, getItems);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ItemCategory'
- *       401:
- *         description: 인증 실패
  *       404:
  *         description: 스티커를 찾을 수 없음
  */
-router.get('/:id', authenticateToken, getItemById);
+router.get('/:id', getItemById);
 
 export default router;

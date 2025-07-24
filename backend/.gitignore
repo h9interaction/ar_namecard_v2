@@ -93,5 +93,5 @@ docker-compose.yml
 simple-compose.yml
 
 # 기타 불필요한 파일들
-*.md
+# *.md
 !README.md

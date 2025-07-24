@@ -14,28 +14,37 @@ export const initializeFirebase = (): admin.app.App => {
     // 환경변수 우선, 없으면 파일 기반 fallback
     if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
       console.log('✅ 환경 변수로 Firebase 초기화 중...');
-      // Private Key 처리 개선
+      
       let privateKey = process.env.FIREBASE_PRIVATE_KEY!;
+      console.log('🔧 원본 Private Key 정보:', {
+        length: privateKey.length,
+        hasBeginMarker: privateKey.includes('-----BEGIN PRIVATE KEY-----'),
+        hasBackslashN: privateKey.includes('\\n'),
+        firstChars: privateKey.substring(0, 50) + '...'
+      });
       
-      // 다양한 개행 문자 형식 처리
-      if (privateKey.includes('\\n')) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-      }
-      
-      // Base64로 인코딩된 경우 처리
-      if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      // 🔥 Base64 디코딩 우선 시도 (CloudType 권장 방식)
+      if (!privateKey.includes('-----BEGIN PRIVATE KEY-----') && privateKey.length > 1000) {
         try {
+          console.log('🔄 Base64 디코딩 시도...');
           privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
+          console.log('✅ Base64 디코딩 성공');
         } catch (e) {
-          console.warn('⚠️ Base64 디코딩 실패, 원본 키 사용');
+          console.warn('⚠️ Base64 디코딩 실패, 다른 방법 시도');
         }
       }
       
-      console.log('🔧 Private Key 형식 확인:', {
+      // 백슬래시 개행 문자 처리
+      if (privateKey.includes('\\n')) {
+        console.log('🔄 백슬래시 개행 문자 변환 중...');
+        privateKey = privateKey.replace(/\\n/g, '\n');
+      }
+      
+      console.log('🔧 최종 Private Key 형식:', {
         hasBeginMarker: privateKey.includes('-----BEGIN PRIVATE KEY-----'),
         hasEndMarker: privateKey.includes('-----END PRIVATE KEY-----'),
         length: privateKey.length,
-        firstChars: privateKey.substring(0, 50) + '...'
+        lineCount: privateKey.split('\n').length
       });
       
       try {
@@ -50,11 +59,13 @@ export const initializeFirebase = (): admin.app.App => {
         console.log('✅ Firebase 환경 변수 초기화 완료');
       } catch (error) {
         console.error('❌ Firebase 초기화 오류:', error);
-        console.error('❌ Firebase 환경변수 확인:', {
+        console.error('❌ Firebase 환경변수 상태:', {
           hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
           hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
           hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
-          hasStorageBucket: !!process.env.FIREBASE_STORAGE_BUCKET
+          hasStorageBucket: !!process.env.FIREBASE_STORAGE_BUCKET,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL?.substring(0, 20) + '...'
         });
         throw error;
       }

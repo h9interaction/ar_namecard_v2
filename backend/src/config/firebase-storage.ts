@@ -36,22 +36,52 @@ export const uploadToFirebase = async (
       originalname: file.originalname,
       mimetype: file.mimetype,
       size: file.size,
-      folder: folder
+      folder: folder,
+      hasBuffer: !!file.buffer,
+      bufferSize: file.buffer?.length
     });
+
+    // 환경변수 확인
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+
+    console.log('🔧 Firebase 설정 확인:', {
+      hasProjectId: !!projectId,
+      hasClientEmail: !!clientEmail,
+      hasPrivateKey: !!privateKey,
+      hasStorageBucket: !!storageBucket,
+      projectId: projectId,
+      storageBucket: storageBucket
+    });
+
+    if (!file.buffer) {
+      throw new Error('파일 버퍼가 없습니다');
+    }
 
     const filename = `${folder}${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
     const bucket = getBucket();
+    
+    console.log('🔧 버킷 정보:', bucket.name);
+    
     const fileUpload = bucket.file(filename);
     
     const stream = fileUpload.createWriteStream({
       metadata: {
         contentType: file.mimetype,
       },
+      resumable: false // 작은 파일의 경우 resumable 업로드 비활성화
     });
 
     return new Promise((resolve, reject) => {
       stream.on('error', (error) => {
         console.error('❌ Firebase 스트림 오류:', error);
+        console.error('❌ 스트림 오류 상세:', {
+          message: error.message,
+          stack: error.stack,
+          code: (error as any).code
+        });
         reject(error);
       });
       
@@ -73,6 +103,11 @@ export const uploadToFirebase = async (
     });
   } catch (error) {
     console.error('❌ Firebase 업로드 오류:', error);
+    console.error('❌ 업로드 오류 상세:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      code: (error as any).code
+    });
     throw error;
   }
 };

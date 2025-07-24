@@ -171,7 +171,8 @@ export const updateAvatar = async (req: Request, res: Response): Promise<void> =
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('Validation errors:', errors.array());
+      console.error('❌ Express Validator 오류:', errors.array());
+      console.error('❌ 요청 데이터:', req.body);
       res.status(400).json({ error: 'Validation failed', details: errors.array() });
       return;
     }
@@ -179,21 +180,94 @@ export const updateAvatar = async (req: Request, res: Response): Promise<void> =
     const { userId } = req.params;
     const updateData = req.body;
     
-    console.log('Updating avatar for user:', userId);
-    console.log('Update data:', updateData);
+    // ID 매핑 문제 진단을 위한 추가 로깅
+    console.log('🔍 ID 매핑 진단:', {
+      receivedUserId: userId,
+      userIdType: typeof userId,
+      userIdLength: userId?.length,
+      isValidObjectId: /^[0-9a-fA-F]{24}$/.test(userId) // MongoDB ObjectId 형식 확인
+    });
     
+    // UserCustomization 존재 여부 확인
+    const existingAvatar = await UserCustomization.findOne({ id: userId });
+    console.log('🔍 기존 아바타 데이터:', {
+      found: !!existingAvatar,
+      existingId: existingAvatar?.id,
+      createdAt: existingAvatar?.createdAt
+    });
+    
+    console.log('🔄 아바타 업데이트 시작:', {
+      userId,
+      updateData,
+      avatarImgUrl: updateData.avatarImgUrl,
+      avatarSelectionsType: typeof updateData.avatarSelections,
+      avatarSelectionsKeys: updateData.avatarSelections ? Object.keys(updateData.avatarSelections) : 'none',
+      messageLength: updateData.message ? updateData.message.length : 0
+    });
+    
+    // avatarSelections 구조 검증
+    if (updateData.avatarSelections) {
+      console.log('🔍 avatarSelections 상세 검증:', updateData.avatarSelections);
+      for (const [key, value] of Object.entries(updateData.avatarSelections)) {
+        console.log(`  ${key}:`, {
+          type: typeof value,
+          value: value,
+          hasOptionId: value && typeof value === 'object' && 'optionId' in value,
+          hasColorIndex: value && typeof value === 'object' && 'colorIndex' in value
+        });
+      }
+    }
+    
+    // MongoDB validation 문제 진단을 위한 상세 로깅
+    console.log('🔍 MongoDB 업데이트 직전 검증:', {
+      userId,
+      updateDataKeys: Object.keys(updateData),
+      messageLength: updateData.message?.length || 0,
+      avatarImgUrlLength: updateData.avatarImgUrl?.length || 0,
+      avatarImgUrlSample: updateData.avatarImgUrl?.substring(0, 50) + '...',
+      hasAvatarSelections: !!updateData.avatarSelections,
+      avatarSelectionsSize: updateData.avatarSelections ? Object.keys(updateData.avatarSelections).length : 0
+    });
+
     const avatar = await UserCustomization.findOneAndUpdate(
       { id: userId },
       updateData,
       { new: true, runValidators: true, upsert: true }
     );
     
+    console.log('✅ 아바타 업데이트 완료:', avatar._id);
     res.json(avatar);
   } catch (error) {
-    console.error('Error updating avatar:', error);
+    console.error('❌ 아바타 업데이트 오류:', error);
+    
+    // ValidationError의 경우 더 자세한 분석
     if (error instanceof Error && error.name === 'ValidationError') {
-      res.status(400).json({ error: error.message, details: error });
+      console.error('❌ MongoDB 검증 오류 상세:');
+      console.error('  - 오류 메시지:', error.message);
+      console.error('  - 오류 객체:', JSON.stringify(error, null, 2));
+      
+      // Mongoose ValidationError는 errors 속성을 가짐
+      if ('errors' in error) {
+        console.error('  - 필드별 오류:');
+        for (const [field, fieldError] of Object.entries((error as any).errors)) {
+          const err = fieldError as any;
+          console.error(`    ${field}:`, err.message || 'Unknown error', err.kind || 'Unknown kind');
+        }
+      }
+      
+      res.status(400).json({ 
+        error: 'Validation failed', 
+        message: error.message,
+        details: error 
+      });
+    } else if (error instanceof Error && error.name === 'CastError') {
+      console.error('❌ MongoDB 타입 변환 오류:', error.message);
+      res.status(400).json({ error: 'Invalid data type', details: error.message });
+    } else if (error instanceof Error && error.name === 'MongoServerError') {
+      console.error('❌ MongoDB 서버 오류:', error.message);
+      res.status(400).json({ error: 'Database constraint violation', details: error.message });
     } else {
+      console.error('❌ 기타 서버 오류:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }

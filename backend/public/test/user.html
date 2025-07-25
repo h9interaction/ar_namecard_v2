@@ -302,7 +302,8 @@
                     <thead>
                         <tr>
                             <th>AR ID</th>
-                            <th>이름</th>
+                            <th>한글이름</th>
+                            <th>영문이름</th>
                             <th>이메일</th>
                             <th>역할</th>
                             <th>부서</th>
@@ -605,7 +606,8 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${user.arId}</td>
-                    <td>${user.nameKr}${user.nameEn ? ' (' + user.nameEn + ')' : ''}</td>
+                    <td>${user.nameKr}</td>
+                    <td>${user.nameEn || ''}</td>
                     <td>${user.email}</td>
                     <td>${user.role}</td>
                     <td>${user.part}</td>

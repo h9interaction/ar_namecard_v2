@@ -519,7 +519,7 @@
                             <input type="text" id="itemName" required placeholder="예: 달리기, 커피, 햄버거">
                         </div>
                         
-                        <div class="form-group">
+                        <div class="form-group" style="display: none;">
                             <label for="itemOrder">순서</label>
                             <input type="number" id="itemOrder" min="0" value="0">
                         </div>
@@ -527,7 +527,7 @@
                     
                     <div class="form-group">
                         <label for="itemImage">스티커 이미지 * (스프라이트 시퀀스 또는 단일 이미지)</label>
-                        <input type="file" id="itemImage" accept="image/*">
+                        <input type="file" id="itemImage" accept="image/*" onchange="handleFileSelection(this, document.getElementById('itemFrames'))">
                         <div id="imagePreview"></div>
                     </div>
                     
@@ -539,26 +539,23 @@
                                 <input type="number" id="itemFrames" min="1" placeholder="예: 16">
                             </div>
                             
-                            <div class="form-group">
+                            <div class="form-group" style="display: none;">
                                 <label for="itemColumns">컬럼 수</label>
-                                <input type="number" id="itemColumns" min="1" max="64" value="16" placeholder="기본값: 16">
+                                <input type="number" id="itemColumns" min="1" max="64" value="1" placeholder="기본값: 1">
                             </div>
                         </div>
                         
                         <div class="form-row">
-                            <div class="form-group">
+                            <div class="form-group" style="display: none;">
                                 <label for="itemDuration">애니메이션 지속시간 (ms)</label>
                                 <input type="number" id="itemDuration" min="1" placeholder="예: 1000">
                             </div>
                             
                             <div class="form-group">
-                                <label for="itemAnimationType">애니메이션 타입</label>
+                                <label for="itemAnimationType">애니메이션 설정</label>
                                 <select id="itemAnimationType" onchange="handleAnimationTypeChange()">
-                                    <option value="">선택하세요</option>
-                                    <option value="none">애니메이션 없음 (스틸 이미지)</option>
-                                    <option value="loop">반복 (loop)</option>
-                                    <option value="once">한 번 (once)</option>
-                                    <option value="pingpong">왕복 (pingpong)</option>
+                                    <option value="none">애니메이션 없음</option>
+                                    <option value="loop">애니메이션 있음</option>
                                 </select>
                             </div>
                         </div>
@@ -587,16 +584,13 @@
                     <div class="form-section">
                         <h4>🔧 일괄 설정</h4>
                         <div class="batch-controls">
-                            <input type="number" id="batchOrderStart" min="0" value="0" class="batch-input" placeholder="시작 순서">
+                            <input type="number" id="batchOrderStart" min="0" value="0" class="batch-input" placeholder="시작 순서" style="display: none;">
                             <input type="number" id="batchFrames" min="1" class="batch-input" placeholder="공통 프레임 수">
-                            <input type="number" id="batchColumns" min="1" max="64" value="16" class="batch-input" placeholder="공통 컬럼 수">
-                            <input type="number" id="batchDuration" min="1" class="batch-input" placeholder="공통 지속시간 (ms)">
+                            <input type="number" id="batchColumns" min="1" max="64" value="1" class="batch-input" placeholder="공통 컬럼 수" style="display: none;">
+                            <input type="number" id="batchDuration" min="1" class="batch-input" placeholder="공통 지속시간 (ms)" style="display: none;">
                             <select id="batchAnimationType" class="batch-input" onchange="handleBatchAnimationTypeChange()">
-                                <option value="">애니메이션 타입</option>
-                                <option value="none">애니메이션 없음 (스틸 이미지)</option>
-                                <option value="loop">반복 (loop)</option>
-                                <option value="once">한 번 (once)</option>
-                                <option value="pingpong">왕복 (pingpong)</option>
+                                <option value="none">애니메이션 없음</option>
+                                <option value="loop">애니메이션 있음</option>
                             </select>
                             <button type="button" onclick="applyBatchSettings()" class="btn-secondary">일괄 적용</button>
                         </div>
@@ -832,6 +826,25 @@
             }).join('');
         }
 
+        // 파일명에서 프레임 수 자동 추출 함수
+        function extractFramesFromFilename(filename) {
+            // 파일명에서 '_숫자.확장자' 패턴을 찾아 숫자 추출
+            const match = filename.match(/_(\d+)\.[^.]+$/);
+            return match ? parseInt(match[1], 10) : null;
+        }
+
+        // 파일 선택 시 프레임 수 자동 설정
+        function handleFileSelection(input, targetFramesField) {
+            const file = input.files[0];
+            if (file) {
+                const frames = extractFramesFromFilename(file.name);
+                if (frames && targetFramesField) {
+                    targetFramesField.value = frames;
+                    console.log(`파일 ${file.name}에서 프레임 수 ${frames} 자동 추출`);
+                }
+            }
+        }
+
         // 애니메이션 타입 변경 처리 (단일 모드)
         function handleAnimationTypeChange() {
             const animationType = document.getElementById('itemAnimationType').value;
@@ -840,7 +853,7 @@
             const durationField = document.getElementById('itemDuration');
             
             if (animationType === 'none') {
-                // 애니메이션 없음 - 스틸 이미지
+                // 애니메이션 없음
                 framesField.value = '1';
                 columnsField.value = '1';
                 durationField.value = '';
@@ -849,26 +862,18 @@
                 framesField.disabled = true;
                 columnsField.disabled = true;
                 durationField.disabled = true;
-            } else if (animationType === '') {
-                // 선택 안함 - 기본값으로 복원
-                framesField.value = '';
-                columnsField.value = '16';
-                durationField.value = '';
-                
-                // 필드 활성화
-                framesField.disabled = false;
-                columnsField.disabled = false;
-                durationField.disabled = false;
             } else {
-                // 애니메이션 있음 - 필드 활성화
-                framesField.disabled = false;
-                columnsField.disabled = false;
-                durationField.disabled = false;
+                // 애니메이션 있음 (loop)
+                columnsField.value = '16';
+                durationField.value = '1000';
                 
-                // 기본값 설정 (비어있는 경우)
+                // 필드 활성화 (프레임 수는 사용자가 입력하거나 파일명에서 자동 추출)
+                framesField.disabled = false;
+                columnsField.disabled = true; // 컬럼은 16으로 고정
+                durationField.disabled = true; // 지속시간은 1000으로 고정
+                
+                // 기본값 설정 (프레임 수가 비어있는 경우)
                 if (!framesField.value) framesField.value = '16';
-                if (!columnsField.value) columnsField.value = '16';
-                if (!durationField.value) durationField.value = '1000';
             }
         }
 
@@ -880,7 +885,7 @@
             const durationField = document.getElementById('batchDuration');
             
             if (animationType === 'none') {
-                // 애니메이션 없음 - 스틸 이미지
+                // 애니메이션 없음
                 framesField.value = '1';
                 columnsField.value = '1';
                 durationField.value = '';
@@ -889,26 +894,18 @@
                 framesField.disabled = true;
                 columnsField.disabled = true;
                 durationField.disabled = true;
-            } else if (animationType === '') {
-                // 선택 안함 - 기본값으로 복원
-                framesField.value = '';
-                columnsField.value = '16';
-                durationField.value = '';
-                
-                // 필드 활성화
-                framesField.disabled = false;
-                columnsField.disabled = false;
-                durationField.disabled = false;
             } else {
-                // 애니메이션 있음 - 필드 활성화
-                framesField.disabled = false;
-                columnsField.disabled = false;
-                durationField.disabled = false;
+                // 애니메이션 있음 (loop)
+                columnsField.value = '16';
+                durationField.value = '1000';
                 
-                // 기본값 설정 (비어있는 경우)
+                // 필드 활성화 (프레임 수는 사용자가 입력하거나 파일명에서 자동 추출)
+                framesField.disabled = false;
+                columnsField.disabled = true; // 컬럼은 16으로 고정
+                durationField.disabled = true; // 지속시간은 1000으로 고정
+                
+                // 기본값 설정 (프레임 수가 비어있는 경우)
                 if (!framesField.value) framesField.value = '16';
-                if (!columnsField.value) columnsField.value = '16';
-                if (!durationField.value) durationField.value = '1000';
             }
         }
 
@@ -1027,17 +1024,21 @@
         function addFiles(files) {
             files.forEach(file => {
                 const fileId = Date.now() + Math.random();
+                
+                // 파일명에서 프레임 수 자동 추출
+                const autoFrames = extractFramesFromFilename(file.name);
+                
                 const fileData = {
                     id: fileId,
                     file: file,
                     name: file.name.replace(/\.[^/.]+$/, ""), // 확장자 제거
                     order: selectedFiles.length,
                     thumbnailFile: null,
-                    // 애니메이션 설정
-                    frames: null,
-                    columns: 16,
-                    duration: null,
-                    animationType: ''
+                    // 애니메이션 설정 - 파일명에서 자동 추출된 프레임 수 적용
+                    frames: autoFrames,
+                    columns: autoFrames ? 16 : 1,
+                    duration: autoFrames ? 1000 : null,
+                    animationType: autoFrames ? 'loop' : 'none'
                 };
                 
                 selectedFiles.push(fileData);
@@ -1057,45 +1058,32 @@
                 fileItem.innerHTML = `
                     <img src="${URL.createObjectURL(fileData.file)}" alt="미리보기" class="file-preview">
                     <div class="file-info">
-                        <div class="form-group">
-                            <label>스티커 이름</label>
-                            <input type="text" value="${fileData.name}" onchange="updateFileName(${fileData.id}, this.value)">
-                        </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>순서</label>
-                                <input type="number" value="${fileData.order}" min="0" onchange="updateFileOrder(${fileData.id}, this.value)">
+                                <label>스티커 이름</label>
+                                <input type="text" value="${fileData.name}" onchange="updateFileName(${fileData.id}, this.value)" style="width: 120px;">
                             </div>
                             <div class="form-group">
                                 <label>프레임 수</label>
-                                <input type="number" value="${fileData.frames || ''}" min="1" onchange="updateFileFrames(${fileData.id}, this.value)" placeholder="애니메이션인 경우" ${fileData.animationType === 'none' ? 'disabled' : ''}>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>컬럼 수</label>
-                                <input type="number" value="${fileData.columns}" min="1" max="64" onchange="updateFileColumns(${fileData.id}, this.value)" ${fileData.animationType === 'none' ? 'disabled' : ''}>
+                                <input type="number" value="${fileData.frames || ''}" min="1" onchange="updateFileFrames(${fileData.id}, this.value)" placeholder="프레임수" ${fileData.animationType === 'none' ? 'disabled' : ''} style="width: 80px;">
                             </div>
                             <div class="form-group">
-                                <label>지속시간 (ms)</label>
-                                <input type="number" value="${fileData.duration || ''}" min="1" onchange="updateFileDuration(${fileData.id}, this.value)" placeholder="애니메이션인 경우" ${fileData.animationType === 'none' ? 'disabled' : ''}>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>애니메이션 타입</label>
-                                <select onchange="updateFileAnimationType(${fileData.id}, this.value)">
-                                    <option value="">선택하세요</option>
-                                    <option value="none" ${fileData.animationType === 'none' ? 'selected' : ''}>애니메이션 없음 (스틸 이미지)</option>
-                                    <option value="loop" ${fileData.animationType === 'loop' ? 'selected' : ''}>반복 (loop)</option>
-                                    <option value="once" ${fileData.animationType === 'once' ? 'selected' : ''}>한 번 (once)</option>
-                                    <option value="pingpong" ${fileData.animationType === 'pingpong' ? 'selected' : ''}>왕복 (pingpong)</option>
+                                <label>애니메이션 설정</label>
+                                <select onchange="updateFileAnimationType(${fileData.id}, this.value)" style="width: 110px;">
+                                    <option value="none" ${fileData.animationType === 'none' ? 'selected' : ''}>애니메이션 없음</option>
+                                    <option value="loop" ${fileData.animationType === 'loop' ? 'selected' : ''}>애니메이션 있음</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>썸네일 (선택사항)</label>
-                                <input type="file" accept="image/*" onchange="updateFileThumbnail(${fileData.id}, this.files[0])">
+                                <label>썸네일</label>
+                                <input type="file" accept="image/*" onchange="updateFileThumbnail(${fileData.id}, this.files[0])" style="width: 120px;">
                             </div>
+                        </div>
+                        <!-- 숨겨진 필드들 -->
+                        <div style="display: none;">
+                            <input type="number" value="${fileData.order}" min="0" onchange="updateFileOrder(${fileData.id}, this.value)">
+                            <input type="number" value="${fileData.columns}" min="1" max="64" onchange="updateFileColumns(${fileData.id}, this.value)">
+                            <input type="number" value="${fileData.duration || ''}" min="1" onchange="updateFileDuration(${fileData.id}, this.value)">
                         </div>
                     </div>
                     <div class="file-actions">
@@ -1137,16 +1125,19 @@
             if (fileData) {
                 fileData.animationType = animationType;
                 
-                // 애니메이션 없음 선택 시 프레임 수와 컬럼 수 자동 설정
                 if (animationType === 'none') {
+                    // 애니메이션 없음
                     fileData.frames = 1;
                     fileData.columns = 1;
                     fileData.duration = null;
-                } else if (animationType !== '' && animationType !== 'none') {
-                    // 애니메이션 있음 선택 시 기본값 설정
-                    if (!fileData.frames) fileData.frames = 16;
-                    if (!fileData.columns) fileData.columns = 16;
-                    if (!fileData.duration) fileData.duration = 1000;
+                } else {
+                    // 애니메이션 있음 (loop)
+                    fileData.columns = 16;
+                    fileData.duration = 1000;
+                    
+                    // 파일명에서 프레임 수 자동 추출, 없으면 기본값 16
+                    const autoFrames = extractFramesFromFilename(fileData.file.name);
+                    fileData.frames = autoFrames || fileData.frames || 16;
                 }
                 
                 // 화면 다시 렌더링
@@ -1164,20 +1155,28 @@
             renderFileItems();
         }
 
-        // 일괄 설정 적용
+        // 일괄 설정 적용 (애니메이션 타입과 컬럼수만)
         function applyBatchSettings() {
             const batchOrderStart = parseInt(document.getElementById('batchOrderStart').value) || 0;
-            const batchFrames = document.getElementById('batchFrames').value;
-            const batchColumns = parseInt(document.getElementById('batchColumns').value) || 16;
-            const batchDuration = document.getElementById('batchDuration').value;
+            const batchColumns = parseInt(document.getElementById('batchColumns').value) || 1;
             const batchAnimationType = document.getElementById('batchAnimationType').value;
 
             selectedFiles.forEach((fileData, index) => {
                 fileData.order = batchOrderStart + index;
-                fileData.columns = batchColumns;
-                if (batchFrames) fileData.frames = parseInt(batchFrames);
-                if (batchDuration) fileData.duration = parseInt(batchDuration);
-                if (batchAnimationType) fileData.animationType = batchAnimationType;
+                
+                // 애니메이션 타입만 일괄 적용
+                if (batchAnimationType) {
+                    fileData.animationType = batchAnimationType;
+                    
+                    // 애니메이션 타입에 따라 컬럼수 자동 설정
+                    if (batchAnimationType === 'none') {
+                        fileData.columns = 1;
+                        fileData.duration = null;
+                    } else {
+                        fileData.columns = 16;
+                        fileData.duration = 1000;
+                    }
+                }
             });
 
             renderFileItems();

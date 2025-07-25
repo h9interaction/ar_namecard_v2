@@ -584,27 +584,34 @@ export const regenerateItemThumbnail = async (req: AuthRequest, res: Response): 
 
     const item = category.items[itemIndex];
     
-    // 원본 이미지 경로 추출
-    const imagePath = path.join(process.cwd(), 'uploads', path.basename(item.imageUrl));
+    console.log(`🔄 썸네일 재생성 시작: ${item.name}`, { 
+      imageUrl: item.imageUrl, 
+      hasAnimation: !!item.animation 
+    });
     
-    // 기존 썸네일 삭제
+    // 기존 썸네일 정보 로그
     if (item.thumbnailUrl) {
-      const oldThumbnailPath = getThumbnailPathFromUrl(item.thumbnailUrl);
-      await deleteFileIfExists(oldThumbnailPath);
+      console.log('🗑️ 기존 썸네일 삭제 예정:', item.thumbnailUrl);
     }
     
-    // 썸네일 재생성
+    // 썸네일 재생성 (Firebase Storage URL 사용)
     let thumbnailResult;
     if (item.animation) {
       const rows = Math.ceil(item.animation.frames / item.animation.columns);
       thumbnailResult = await ThumbnailGenerator.generateThumbnailFromSprite(
-        imagePath,
+        item.imageUrl, // Firebase Storage URL 직접 사용
         item.animation.columns,
-        rows
+        rows,
+        path.basename(item.imageUrl, path.extname(item.imageUrl))
       );
     } else {
-      thumbnailResult = await ThumbnailGenerator.generateThumbnail(imagePath);
+      thumbnailResult = await ThumbnailGenerator.generateThumbnail(
+        item.imageUrl, // Firebase Storage URL 직접 사용
+        path.basename(item.imageUrl, path.extname(item.imageUrl))
+      );
     }
+    
+    console.log('✅ 새 썸네일 생성 완료:', thumbnailResult.thumbnailUrl);
     
     item.thumbnailUrl = thumbnailResult.thumbnailUrl;
     item.thumbnailSource = 'auto';

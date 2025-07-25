@@ -46,20 +46,34 @@ export class ThumbnailGenerator {
       // temp 디렉토리 생성
       await fs.mkdir(path.dirname(tempFilePath), { recursive: true });
       
+      // URL에 프로토콜이 없으면 추가
+      let fullUrl = imageUrl;
+      if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        fullUrl = `https://${imageUrl}`;
+      }
+      
+      console.log('🔍 원본 URL:', imageUrl);
+      console.log('🔍 처리된 URL:', fullUrl);
+      
       // Firebase Storage URL에서 파일 경로 추출 (개선된 파싱)
-      const url = new URL(imageUrl);
+      const url = new URL(fullUrl);
       let filePath = '';
       
       // 다양한 Firebase Storage URL 형식 지원
-      if (url.hostname.includes('firebasestorage.app') || url.hostname.includes('googleapis.com')) {
-        // 새로운 형식: https://storage.googleapis.com/bucket-name/uploads/filename
+      if (url.hostname.includes('firebasestorage.app')) {
+        // Firebase Storage 직접 URL: https://bucket-name.firebasestorage.app/path/to/file
+        filePath = url.pathname.substring(1); // 맨 앞의 '/' 제거
+      } else if (url.hostname.includes('googleapis.com')) {
+        // Google Storage API URL 형식
         if (url.pathname.includes('/o/')) {
           filePath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] || '');
         } else {
           // 직접 경로 형식: https://storage.googleapis.com/bucket-name/uploads/filename
           const pathParts = url.pathname.split('/');
           if (pathParts.length >= 3) {
-            filePath = pathParts.slice(2).join('/'); // bucket-name 이후의 경로
+            const rawPath = pathParts.slice(2).join('/'); // bucket-name 이후의 경로
+            // URL 디코딩을 통해 %20을 공백으로 변환
+            filePath = decodeURIComponent(rawPath);
           }
         }
       }
@@ -168,9 +182,15 @@ export class ThumbnailGenerator {
         throw new Error(`Original image not found: ${localImagePath}`);
       }
       
-      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
-      await fs.copyFile(localImagePath, localThumbnailPath);
-      console.log(`✅ 로컬 썸네일 생성 완료:`, localThumbnailPath);
+      // Sharp를 사용하여 썸네일 생성
+      const sharp = require('sharp');
+      await sharp(localImagePath)
+        .resize(300, 300) // 썸네일 크기로 리사이즈
+        .flatten({ background: { r: 255, g: 255, b: 255 } }) // 투명 배경을 흰색으로 변경
+        .jpeg({ quality: 80 })
+        .toFile(localThumbnailPath);
+      
+      console.log(`✅ 로컬 썸네일 생성 완료 (흰색 배경 적용):`, localThumbnailPath);
       
       // Firebase Storage에 업로드
       const firebaseUrl = await this.uploadThumbnailToFirebase(localThumbnailPath, thumbnailFilename);
@@ -239,14 +259,14 @@ export class ThumbnailGenerator {
       }
 
       // 스프라이트 이미지 정보 가져오기
-      // const { width, height } = await sharp(localImagePath).metadata();
-      const width = 800, height = 600; // Temporary values
+      const sharp = require('sharp');
+      const { width, height } = await sharp(localImagePath).metadata();
       
       if (!width || !height) {
         throw new Error('Cannot get sprite image dimensions');
       }
 
-      // 첫 번째 프레임 크기 계산
+      // 첫 번째 프레임 크기 계산 (16컬럼 기준으로 전체 넓이를 16으로 나눔)
       const frameWidth = Math.floor(width / columns);
       let frameHeight: number;
       
@@ -261,10 +281,20 @@ export class ThumbnailGenerator {
       console.log(`Sprite info: ${width}x${height}, columns: ${columns}, rows: ${rows || 'auto'}`);
       console.log(`Frame size: ${frameWidth}x${frameHeight}`);
 
-      // Temporary: 원본 파일을 복사해서 썸네일로 사용 (Sharp 없이)
-      // 실제로는 Sharp를 사용해서 첫 번째 프레임만 추출해야 함
-      await fs.copyFile(localImagePath, localThumbnailPath);
-      console.log(`✅ 로컬 스프라이트 썸네일 생성 완료:`, localThumbnailPath);
+      // 첫 번째 프레임 추출 (좌상단 기준 크롭)
+      await sharp(localImagePath)
+        .extract({ 
+          left: 0, 
+          top: 0, 
+          width: frameWidth, 
+          height: frameHeight 
+        })
+        .resize(300, 300) // 썸네일 크기로 리사이즈
+        .flatten({ background: { r: 255, g: 255, b: 255 } }) // 투명 배경을 흰색으로 변경
+        .jpeg({ quality: 80 })
+        .toFile(localThumbnailPath);
+      
+      console.log(`✅ 로컬 스프라이트 썸네일 생성 완료 (첫 번째 프레임 추출):`, localThumbnailPath);
 
       // Firebase Storage에 업로드
       const firebaseUrl = await this.uploadThumbnailToFirebase(localThumbnailPath, thumbnailFilename);

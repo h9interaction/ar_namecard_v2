@@ -461,7 +461,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeCategoryModal()">&times;</span>
             <h3 id="categoryModalTitle">📁 새 카테고리 추가</h3>
-            <form id="categoryForm">
+            <form id="categoryForm" enctype="multipart/form-data">
                 <input type="hidden" id="categoryId">
                 
                 <div class="form-row">
@@ -476,9 +476,22 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="categoryOrder">순서</label>
-                    <input type="number" id="categoryOrder" min="0" value="0">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="categoryOrder">순서</label>
+                        <input type="number" id="categoryOrder" min="0" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="categoryThumbnail">카테고리 썸네일 (선택사항)</label>
+                        <input type="file" id="categoryThumbnail" accept="image/*">
+                        <small class="help-text">PNG, JPG, JPEG 파일만 업로드 가능합니다.</small>
+                    </div>
+                </div>
+                
+                <div id="categoryThumbnailPreview" class="thumbnail-preview" style="display: none;">
+                    <img id="categoryThumbnailImg" alt="썸네일 미리보기" style="max-width: 100px; max-height: 100px; border-radius: 5px; border: 1px solid #ddd;">
+                    <button type="button" onclick="removeCategoryThumbnail()" class="btn-danger" style="margin-left: 10px; font-size: 12px;">제거</button>
                 </div>
                 
                 <div style="text-align: right; margin-top: 20px;">
@@ -756,9 +769,10 @@
                 const isExpanded = expandedCategories.has(categoryId);
                 categoryCard.className = `category-card ${isExpanded ? '' : 'collapsed'}`;
                 categoryCard.setAttribute('data-category-id', categoryId);
+                const thumbnailImg = category.thumbnailUrl ? `<img src="${category.thumbnailUrl}" alt="${category.name}" style="width: 40px; height: 40px; border-radius: 5px; margin-right: 10px; object-fit: cover;">` : '';
                 categoryCard.innerHTML = `
                     <div class="category-header" onclick="toggleCategory(this)">
-                        <div class="category-title">${category.name} (${category.type})</div>
+                        <div class="category-title">${thumbnailImg}${category.name} (${category.type})</div>
                         <div>
                             <button onclick="event.stopPropagation(); openCreateItemModal('${categoryId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">스티커 추가</button>
                             <button onclick="event.stopPropagation(); editCategory('${categoryId}')" class="btn-warning" style="padding: 5px 10px; font-size: 12px;">수정</button>
@@ -1338,6 +1352,44 @@
             document.getElementById('uploadStatus').textContent = `${current}/${total} 업로드 중...`;
         }
 
+        // 카테고리 썸네일 관련 함수들
+        function removeCategoryThumbnail() {
+            document.getElementById('categoryThumbnail').value = '';
+            document.getElementById('categoryThumbnailPreview').style.display = 'none';
+            document.getElementById('categoryThumbnailImg').src = '';
+        }
+
+        // 카테고리 썸네일 미리보기
+        document.getElementById('categoryThumbnail').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 파일 크기 체크 (10MB 제한)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('파일 크기는 10MB를 초과할 수 없습니다.');
+                    e.target.value = '';
+                    return;
+                }
+
+                // 파일 형식 체크
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('PNG, JPG, JPEG 파일만 업로드 가능합니다.');
+                    e.target.value = '';
+                    return;
+                }
+
+                // 미리보기 표시
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('categoryThumbnailImg').src = e.target.result;
+                    document.getElementById('categoryThumbnailPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('categoryThumbnailPreview').style.display = 'none';
+            }
+        });
+
         // 카테고리 폼 제출
         document.getElementById('categoryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1357,11 +1409,17 @@
             submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
             
             try {
-                const formData = {
-                    name: document.getElementById('categoryName').value,
-                    type: document.getElementById('categoryType').value,
-                    order: parseInt(document.getElementById('categoryOrder').value) || 0
-                };
+                // FormData 사용 (파일 업로드를 위해)
+                const formData = new FormData();
+                formData.append('name', document.getElementById('categoryName').value);
+                formData.append('type', document.getElementById('categoryType').value);
+                formData.append('order', parseInt(document.getElementById('categoryOrder').value) || 0);
+                
+                // 썸네일 파일 추가
+                const thumbnailFile = document.getElementById('categoryThumbnail').files[0];
+                if (thumbnailFile) {
+                    formData.append('thumbnail', thumbnailFile);
+                }
 
                 const url = isEdit ? 
                     `/api/admin/stickers/categories/${categoryId}` : 
@@ -1370,10 +1428,10 @@
                 const response = await fetch(url, {
                     method: isEdit ? 'PUT' : 'POST',
                     headers: {
-                        'Authorization': `Bearer ${currentToken}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${currentToken}`
+                        // FormData 사용 시 Content-Type 헤더 제거 (브라우저가 자동 설정)
                     },
-                    body: JSON.stringify(formData)
+                    body: formData
                 });
 
                 const data = await response.json();

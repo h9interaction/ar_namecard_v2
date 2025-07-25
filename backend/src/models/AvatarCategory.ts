@@ -33,6 +33,8 @@ export interface IAvatarOption {
 export interface IAvatarCategory extends Document {
   name: string;
   type: string;
+  thumbnailUrl?: string;
+  thumbnailSource?: 'user' | 'auto';
   options: IAvatarOption[];
   order: number;
   createdAt: Date;
@@ -109,6 +111,15 @@ const avatarCategorySchema = new Schema<IAvatarCategory>({
     required: true,
     unique: true,
     trim: true
+  },
+  thumbnailUrl: {
+    type: String,
+    trim: true
+  },
+  thumbnailSource: {
+    type: String,
+    enum: ['user', 'auto'],
+    default: 'auto'
   },
   options: [avatarOptionSchema],
   order: {

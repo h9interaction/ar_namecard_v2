@@ -167,6 +167,8 @@ export const getAvatarCategoryById = async (req: AuthRequest, res: Response): Pr
 };
 
 export const createAvatarCategory = async (req: AuthRequest, res: Response): Promise<void> => {
+  console.log('createAvatarCategory - req.body:', req.body);
+  console.log('createAvatarCategory - req.file:', req.file);
   try {
     if (!req.user || !req.user.isAdmin) {
       res.status(403).json({ message: 'Admin access required' });
@@ -188,9 +190,34 @@ export const createAvatarCategory = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
+    // 썸네일 이미지 업로드 처리
+    let thumbnailUrl = '';
+    if (req.file) {
+      try {
+        console.log('📤 카테고리 썸네일 업로드 시작:', {
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+
+        const uploadResult = await uploadToFirebase(req.file, 'categories/thumbnails/');
+        thumbnailUrl = uploadResult.url;
+        console.log('✅ 카테고리 썸네일 업로드 성공:', thumbnailUrl);
+      } catch (uploadError) {
+        console.error('❌ 카테고리 썸네일 업로드 실패:', uploadError);
+        res.status(500).json({ 
+          message: '썸네일 이미지 업로드 실패', 
+          error: uploadError instanceof Error ? uploadError.message : '알 수 없는 오류'
+        });
+        return;
+      }
+    }
+
     const category = new AvatarCategory({
       name,
       type,
+      thumbnailUrl: thumbnailUrl || undefined,
+      thumbnailSource: thumbnailUrl ? 'user' : 'auto',
       options: [],
       order
     });
@@ -204,6 +231,8 @@ export const createAvatarCategory = async (req: AuthRequest, res: Response): Pro
 };
 
 export const updateAvatarCategory = async (req: AuthRequest, res: Response): Promise<void> => {
+  console.log('updateAvatarCategory - req.body:', req.body);
+  console.log('updateAvatarCategory - req.file:', req.file);
   try {
     if (!req.user || !req.user.isAdmin) {
       res.status(403).json({ message: 'Admin access required' });
@@ -232,6 +261,29 @@ export const updateAvatarCategory = async (req: AuthRequest, res: Response): Pro
     if (name !== undefined) updateData.name = name;
     if (type !== undefined) updateData.type = type;
     if (order !== undefined) updateData.order = order;
+
+    // 썸네일 이미지 업로드 처리
+    if (req.file) {
+      try {
+        console.log('📤 카테고리 썸네일 업데이트 시작:', {
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+
+        const uploadResult = await uploadToFirebase(req.file, 'categories/thumbnails/');
+        updateData.thumbnailUrl = uploadResult.url;
+        updateData.thumbnailSource = 'user';
+        console.log('✅ 카테고리 썸네일 업데이트 성공:', updateData.thumbnailUrl);
+      } catch (uploadError) {
+        console.error('❌ 카테고리 썸네일 업데이트 실패:', uploadError);
+        res.status(500).json({ 
+          message: '썸네일 이미지 업로드 실패', 
+          error: uploadError instanceof Error ? uploadError.message : '알 수 없는 오류'
+        });
+        return;
+      }
+    }
 
     const category = await AvatarCategory.findByIdAndUpdate(
       id,

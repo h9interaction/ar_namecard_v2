@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { getAllUsers, updateUserPermissions } from '../controllers/adminController';
+import { getAllUsers, updateUserPermissions, exportUsersToExcel, importUsersFromExcel } from '../controllers/adminController';
 import { authenticateToken } from '../middleware/auth';
+import { upload } from '../middleware/upload';
 
 /**
  * @swagger
@@ -83,6 +84,79 @@ const permissionUpdateValidation = [
  *         description: 관리자 권한 필요
  */
 router.get('/users', authenticateToken, getAllUsers);
+
+/**
+ * @swagger
+ * /api/admin/users/export/excel:
+ *   get:
+ *     summary: 모든 사용자 데이터를 엑셀 파일로 내보내기 (관리자 전용)
+ *     tags: [Admin - Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 사용자 데이터가 포함된 엑셀 파일
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 관리자 권한 필요
+ *       500:
+ *         description: 서버 오류
+ */
+router.get('/users/export/excel', authenticateToken, exportUsersToExcel);
+
+/**
+ * @swagger
+ * /api/admin/users/import/excel:
+ *   post:
+ *     summary: 엑셀 파일로 사용자 데이터 가져오기 (관리자 전용)
+ *     tags: [Admin - Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: 업로드할 엑셀 파일 (xlsx)
+ *     responses:
+ *       200:
+ *         description: 사용자 데이터 가져오기 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 createdCount:
+ *                   type: integer
+ *                 updatedCount:
+ *                   type: integer
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: 잘못된 요청 또는 파일 형식 오류
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 관리자 권한 필요
+ *       500:
+ *         description: 서버 오류
+ */
+router.post('/users/import/excel', authenticateToken, upload.single('file'), importUsersFromExcel);
 
 /**
  * @swagger

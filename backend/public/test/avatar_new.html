@@ -397,7 +397,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeCategoryModal()">&times;</span>
             <h3 id="categoryModalTitle">📁 새 카테고리 추가</h3>
-            <form id="categoryForm">
+            <form id="categoryForm" enctype="multipart/form-data">
                 <input type="hidden" id="categoryId">
 
                 <div class="form-row">
@@ -415,6 +415,13 @@
                 <div class="form-group">
                     <label for="categoryOrder">순서</label>
                     <input type="number" id="categoryOrder" min="0" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryThumbnail">카테고리 썸네일 이미지</label>
+                    <input type="file" id="categoryThumbnail" accept="image/png,image/jpg,image/jpeg" onchange="handleCategoryThumbnailChange(event)">
+                    <small style="color: #666; display: block; margin-top: 5px;">카테고리를 나타내는 썸네일 이미지를 업로드하세요. (최대 10MB, PNG/JPG 형식, 선택사항)</small>
+                    <div id="categoryThumbnailPreview" style="margin-top: 10px;"></div>
                 </div>
 
                 <div style="text-align: right; margin-top: 20px;">
@@ -602,9 +609,10 @@
                 const isExpanded = expandedCategories.has(categoryId);
                 categoryCard.className = `category-card ${isExpanded ? '' : 'collapsed'}`;
                 categoryCard.setAttribute('data-category-id', categoryId);
+                const thumbnailImg = category.thumbnailUrl ? `<img src="${category.thumbnailUrl}" alt="${category.name}" style="width: 40px; height: 40px; border-radius: 5px; margin-right: 10px; object-fit: cover;">` : '';
                 categoryCard.innerHTML = `
                     <div class="category-header" onclick="toggleCategory(this)">
-                        <div class="category-title">${category.name} (${category.type})</div>
+                        <div class="category-title">${thumbnailImg}${category.name} (${category.type})</div>
                         <div>
                             <button onclick="event.stopPropagation(); openCreateOptionModal('${categoryId}')" class="btn-success" style="padding: 5px 10px; font-size: 12px;">옵션 추가</button>
                             <button onclick="event.stopPropagation(); editCategory('${categoryId}')" class="btn-warning" style="padding: 5px 10px; font-size: 12px;">수정</button>
@@ -1151,6 +1159,54 @@
             }
         });
 
+        // 카테고리 썸네일 미리보기 처리
+        function handleCategoryThumbnailChange(event) {
+            const file = event.target.files[0];
+            const previewContainer = document.getElementById('categoryThumbnailPreview');
+            previewContainer.innerHTML = ''; // 이전 미리보기 제거
+
+            if (file) {
+                // 파일 크기 검증 (10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('파일 크기는 10MB를 초과할 수 없습니다.');
+                    event.target.value = ''; // 파일 선택 취소
+                    return;
+                }
+
+                // 파일 타입 검증
+                const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('PNG, JPG, JPEG 파일만 업로드할 수 있습니다.');
+                    event.target.value = ''; // 파일 선택 취소
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '150px';
+                    img.style.maxHeight = '150px';
+                    img.style.borderRadius = '5px';
+                    img.style.marginTop = '10px';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = '이미지 제거';
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn-danger';
+                    removeBtn.style.marginLeft = '10px';
+                    removeBtn.onclick = function() {
+                        previewContainer.innerHTML = '';
+                        document.getElementById('categoryThumbnail').value = '';
+                    };
+
+                    previewContainer.appendChild(img);
+                    previewContainer.appendChild(removeBtn);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         // 카테고리 폼 제출
         document.getElementById('categoryForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -1170,11 +1226,16 @@
             submitBtn.textContent = isEdit ? '수정 중...' : '저장 중...';
 
             try {
-                const formData = {
-                    name: document.getElementById('categoryName').value,
-                    type: document.getElementById('categoryType').value,
-                    order: parseInt(document.getElementById('categoryOrder').value) || 0
-                };
+                const formData = new FormData();
+                formData.append('name', document.getElementById('categoryName').value);
+                formData.append('type', document.getElementById('categoryType').value);
+                formData.append('order', parseInt(document.getElementById('categoryOrder').value) || 0);
+
+                // 썸네일 파일 추가 (선택된 경우)
+                const thumbnailFile = document.getElementById('categoryThumbnail').files[0];
+                if (thumbnailFile) {
+                    formData.append('thumbnail', thumbnailFile);
+                }
 
                 const url = isEdit ?
                     `/api/admin/characters/categories/${categoryId}` :
@@ -1183,10 +1244,10 @@
                 const response = await fetch(url, {
                     method: isEdit ? 'PUT' : 'POST',
                     headers: {
-                        'Authorization': `Bearer ${currentToken}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${currentToken}`
+                        // Content-Type 헤더 제거 - 브라우저가 multipart/form-data로 자동 설정
                     },
-                    body: JSON.stringify(formData)
+                    body: formData
                 });
 
                 const data = await response.json();

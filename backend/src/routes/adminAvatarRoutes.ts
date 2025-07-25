@@ -110,7 +110,7 @@ router.get('/categories/:id', authenticateToken, getAvatarCategoryById);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -129,15 +129,28 @@ router.get('/categories/:id', authenticateToken, getAvatarCategoryById);
  *                 type: integer
  *                 description: 표시 순서
  *                 example: 1
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *                 description: 카테고리 썸네일 이미지 (선택사항)
  *     responses:
  *       201:
  *         description: 아바타 카테고리 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 category:
+ *                   $ref: '#/components/schemas/AvatarCategory'
  *       400:
  *         description: 잘못된 요청 또는 중복된 타입
  *       403:
  *         description: 관리자 권한 필요
  */
-router.post('/categories', authenticateToken, categoryValidation, createAvatarCategory);
+router.post('/categories', authenticateToken, upload.single('thumbnail'), categoryValidation, createAvatarCategory);
 
 /**
  * @swagger
@@ -157,7 +170,7 @@ router.post('/categories', authenticateToken, categoryValidation, createAvatarCa
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -170,13 +183,17 @@ router.post('/categories', authenticateToken, categoryValidation, createAvatarCa
  *               order:
  *                 type: integer
  *                 description: 표시 순서
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *                 description: 새 썸네일 이미지 (선택사항)
  *     responses:
  *       200:
  *         description: 아바타 카테고리 수정 성공
  *       404:
  *         description: 카테고리를 찾을 수 없음
  */
-router.put('/categories/:id', authenticateToken, categoryValidation, updateAvatarCategory);
+router.put('/categories/:id', authenticateToken, upload.single('thumbnail'), categoryValidation, updateAvatarCategory);
 
 /**
  * @swagger

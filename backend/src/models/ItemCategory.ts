@@ -23,6 +23,8 @@ export interface IItem {
 export interface IItemCategory extends Document {
   name: string;
   type: string;
+  thumbnailUrl?: string;
+  thumbnailSource?: 'user' | 'auto';
   items: IItem[];
   order: number;
   createdAt: Date;
@@ -101,6 +103,15 @@ const itemCategorySchema = new Schema<IItemCategory>({
     required: true,
     unique: true,
     trim: true
+  },
+  thumbnailUrl: {
+    type: String,
+    trim: true
+  },
+  thumbnailSource: {
+    type: String,
+    enum: ['user', 'auto'],
+    default: 'auto'
   },
   items: [itemSchema],
   order: {

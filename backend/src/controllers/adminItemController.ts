@@ -103,9 +103,34 @@ export const createItemCategory = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
+    // 썸네일 이미지 업로드 처리
+    let thumbnailUrl = '';
+    if (req.file) {
+      try {
+        console.log('📤 카테고리 썸네일 업로드 시작:', {
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+
+        const uploadResult = await uploadToFirebase(req.file, 'categories/thumbnails/');
+        thumbnailUrl = uploadResult.url;
+        console.log('✅ 카테고리 썸네일 업로드 성공:', thumbnailUrl);
+      } catch (uploadError) {
+        console.error('❌ 카테고리 썸네일 업로드 실패:', uploadError);
+        res.status(500).json({ 
+          message: '썸네일 이미지 업로드 실패', 
+          error: uploadError instanceof Error ? uploadError.message : '알 수 없는 오류'
+        });
+        return;
+      }
+    }
+
     const category = new ItemCategory({
       name,
       type,
+      thumbnailUrl: thumbnailUrl || undefined,
+      thumbnailSource: thumbnailUrl ? 'user' : 'auto',
       items: [],
       order
     });
@@ -147,6 +172,29 @@ export const updateItemCategory = async (req: AuthRequest, res: Response): Promi
     if (name !== undefined) updateData.name = name;
     if (type !== undefined) updateData.type = type;
     if (order !== undefined) updateData.order = order;
+
+    // 썸네일 이미지 업로드 처리
+    if (req.file) {
+      try {
+        console.log('📤 카테고리 썸네일 업데이트 시작:', {
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+
+        const uploadResult = await uploadToFirebase(req.file, 'categories/thumbnails/');
+        updateData.thumbnailUrl = uploadResult.url;
+        updateData.thumbnailSource = 'user';
+        console.log('✅ 카테고리 썸네일 업데이트 성공:', updateData.thumbnailUrl);
+      } catch (uploadError) {
+        console.error('❌ 카테고리 썸네일 업데이트 실패:', uploadError);
+        res.status(500).json({ 
+          message: '썸네일 이미지 업로드 실패', 
+          error: uploadError instanceof Error ? uploadError.message : '알 수 없는 오류'
+        });
+        return;
+      }
+    }
 
     const category = await ItemCategory.findByIdAndUpdate(
       id,

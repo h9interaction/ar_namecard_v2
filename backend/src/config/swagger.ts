@@ -299,6 +299,17 @@ const options = {
               type: 'string',
               description: '카테고리 타입',
             },
+            thumbnailUrl: {
+              type: 'string',
+              description: '카테고리 썸네일 이미지 URL',
+              nullable: true,
+            },
+            thumbnailSource: {
+              type: 'string',
+              enum: ['user', 'auto'],
+              description: '썸네일 생성 방식',
+              default: 'auto',
+            },
             options: {
               type: 'array',
               items: {
@@ -370,6 +381,17 @@ const options = {
             type: {
               type: 'string',
               description: '카테고리 타입',
+            },
+            thumbnailUrl: {
+              type: 'string',
+              description: '카테고리 썸네일 이미지 URL',
+              nullable: true,
+            },
+            thumbnailSource: {
+              type: 'string',
+              enum: ['user', 'auto'],
+              description: '썸네일 생성 방식',
+              default: 'auto',
             },
             items: {
               type: 'array',

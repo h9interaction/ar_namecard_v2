@@ -113,7 +113,7 @@ router.get('/categories/:id', authenticateToken, getItemCategoryById);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -132,15 +132,28 @@ router.get('/categories/:id', authenticateToken, getItemCategoryById);
  *                 type: integer
  *                 description: 표시 순서
  *                 example: 1
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *                 description: 카테고리 썸네일 이미지 (선택사항)
  *     responses:
  *       201:
  *         description: 스티커 카테고리 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 category:
+ *                   $ref: '#/components/schemas/ItemCategory'
  *       400:
  *         description: 잘못된 요청 또는 중복된 타입
  *       403:
  *         description: 관리자 권한 필요
  */
-router.post('/categories', authenticateToken, categoryValidation, createItemCategory);
+router.post('/categories', authenticateToken, upload.single('thumbnail'), categoryValidation, createItemCategory);
 
 /**
  * @swagger
@@ -160,7 +173,7 @@ router.post('/categories', authenticateToken, categoryValidation, createItemCate
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -173,13 +186,17 @@ router.post('/categories', authenticateToken, categoryValidation, createItemCate
  *               order:
  *                 type: integer
  *                 description: 표시 순서
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *                 description: 새 썸네일 이미지 (선택사항)
  *     responses:
  *       200:
  *         description: 스티커 카테고리 수정 성공
  *       404:
  *         description: 카테고리를 찾을 수 없음
  */
-router.put('/categories/:id', authenticateToken, categoryValidation, updateItemCategory);
+router.put('/categories/:id', authenticateToken, upload.single('thumbnail'), categoryValidation, updateItemCategory);
 
 /**
  * @swagger

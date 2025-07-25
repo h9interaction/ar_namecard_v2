@@ -7,14 +7,18 @@ import { uploadToFirebase } from '../config/firebase-storage';
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|webp|svg/;
+  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|webp|svg|xlsx|xls/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   // Base64로 변환된 이미지 파일의 경우 mimetype이 image/*이면 허용
   const isImageMimeType = file.mimetype.startsWith('image/');
+  
+  // Excel 파일 mimetype 체크
+  const isExcelMimeType = file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                         file.mimetype === 'application/vnd.ms-excel';
 
-  if ((mimetype && extname) || isImageMimeType) {
+  if ((mimetype && extname) || isImageMimeType || isExcelMimeType) {
     cb(null, true);
   } else {
     console.warn('🚫 파일 타입 거부:', {
